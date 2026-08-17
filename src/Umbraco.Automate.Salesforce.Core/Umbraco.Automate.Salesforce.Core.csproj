@@ -19,6 +19,7 @@
 
     <ItemGroup>
         <PackageReference Include="OpenIddict.Client.WebIntegration" />
+        <PackageReference Include="Umbraco.Cms.Persistence.EFCore" />
     </ItemGroup>
 
     <!-- Sibling-monorepo dev mode: resolves against a local ../../../Umbraco.Automate checkout

@@ -1,8 +1,19 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Umbraco.Automate.Core.Persistence;
+using Umbraco.Automate.Extensions;
 using Umbraco.Automate.Salesforce.Api;
 using Umbraco.Automate.Salesforce.Connection;
+using Umbraco.Automate.Salesforce.Persistence;
+using Umbraco.Automate.Salesforce.Triggers;
 using Umbraco.Cms.Core.Composing;
+using Umbraco.Cms.Core.Configuration.Models;
 using Umbraco.Cms.Core.DependencyInjection;
+using Umbraco.Cms.Core.Notifications;
+using Umbraco.Cms.Persistence.EFCore;
+using Umbraco.Extensions;
 
 namespace Umbraco.Automate.Salesforce.Configuration;
 
@@ -20,9 +31,30 @@ public sealed class SalesforceComposer : IComposer
     {
         builder.Services.Configure<SalesforceApiOptions>(
             builder.Config.GetSection("Umbraco:Automate:Salesforce"));
+        builder.Services.Configure<SalesforcePollingOptions>(
+            builder.Config.GetSection("Umbraco:Automate:Salesforce:Polling"));
 
         builder.Services.AddSingleton<ISalesforceConnectionResolver, SalesforceConnectionResolver>();
         builder.Services.AddSingleton<ISalesforceClient, SalesforceClient>();
+        builder.Services.AddSingleton<ISalesforceTriggerConnectionResolver, SalesforceTriggerConnectionResolver>();
+        builder.Services.AddSingleton<ISalesforcePollingStateStore, SalesforcePollingStateStore>();
+        builder.Services.AddHostedService<SalesforcePollingBackgroundJob>();
+
+        // Resolved lazily inside the factory (run time), not here at composition time — same
+        // reasoning as Umbraco.Automate.OpenIddict.Core.AddPersistence: hosts like Umbraco Cloud
+        // synthesise the connection string through the ConnectionStrings options pipeline, which
+        // hasn't run yet during AddComposers().
+        builder.Services.AddUmbracoDbContext<SalesforceDbContext>(
+            (IServiceProvider serviceProvider, DbContextOptionsBuilder options, string? _, string? _) =>
+            {
+                var (connectionString, providerName) = DatabaseConnectionInfo.Resolve(
+                    serviceProvider.GetRequiredService<IOptionsMonitor<ConnectionStrings>>(),
+                    serviceProvider.GetRequiredService<IConfiguration>());
+                SalesforceDbContext.ConfigureProvider(options, connectionString, providerName);
+            },
+            shareUmbracoConnection: false);
+
+        builder.AddNotificationAsyncHandler<UmbracoApplicationStartedNotification, RunSalesforceMigrationNotificationHandler>();
 
         builder.Services.AddOpenIddict()
             .AddClient(options =>

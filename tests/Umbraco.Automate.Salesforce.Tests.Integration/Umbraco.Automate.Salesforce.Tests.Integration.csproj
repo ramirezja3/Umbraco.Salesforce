@@ -21,6 +21,9 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\Umbraco.Automate.Salesforce.Core\Umbraco.Automate.Salesforce.Core.csproj" />
+        <!-- Referenced so the SQLite migrations assembly is present at test runtime —
+             EF Core's MigrationsAssembly loads it by name, it doesn't just need the types. -->
+        <ProjectReference Include="..\..\src\Umbraco.Automate.Salesforce.Persistence.Sqlite\Umbraco.Automate.Salesforce.Persistence.Sqlite.csproj" />
     </ItemGroup>
 
     <ItemGroup>
