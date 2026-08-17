@@ -1,0 +1,32 @@
+{
+    "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json",
+    "AuthorDetails": {
+        "Name": "Umbraco HQ",
+        "Description": "Umbraco HQ",
+        "Url": "https://umbraco.com",
+        "ImageUrl": "https://avatars.githubusercontent.com/u/1419552?s=200&v=4"
+    },
+    "Category": "Automation",
+    "LicenseTypes": ["Free"],
+    "DocumentationUrl": "REPLACE_WITH_REAL_DOCS_URL_BEFORE_PUBLISHING",
+    "IssueTrackerUrl": "REPLACE_WITH_REAL_ISSUE_TRACKER_URL_BEFORE_PUBLISHING",
+    "PackageType": "Package",
+    "PackagesByAuthor": [
+        "Umbraco.Forms",
+        "Umbraco.Workflow",
+        "Umbraco.Deploy.OnPrem",
+        "Umbraco.Commerce",
+        "Umbraco.Engage"
+    ],
+    "RelatedPackages": [
+        {
+            "PackageId": "Umbraco.Automate",
+            "Description": "Core automation system for Umbraco CMS"
+        },
+        {
+            "PackageId": "Umbraco.Automate.OpenIddict",
+            "Description": "OAuth connection support for Umbraco Automate"
+        }
+    ],
+    "Tags": ["umbraco", "automate", "automation", "salesforce", "crm", "oauth"]
+}

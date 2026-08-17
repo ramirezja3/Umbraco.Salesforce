@@ -1,0 +1,67 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- Global packages (SourceLink, NBGV, Umbraco.Code) — versions pinned to match the
+       umbraco/Umbraco.Automate monorepo's v17/dev branch (the active LTS line this brief
+       targets — see CLAUDE.md §0/§3 "Umbraco CMS 17.x"; v18/dev exists too but pins newer
+       versions throughout, do not mix the two lines' versions). Keep in lockstep with
+       that branch's Directory.Packages.props when bumping. -->
+  <ItemGroup>
+    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
+    <GlobalPackageReference Include="Nerdbank.GitVersioning" Version="3.8.118" />
+    <GlobalPackageReference Include="Umbraco.Code" Version="3.0.0-beta" />
+    <GlobalPackageReference Include="Umbraco.GitVersioning.Extensions" Version="0.2.0" />
+    <GlobalPackageReference Include="Umbraco.JsonSchema.Extensions" Version="0.4.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Umbraco CMS -->
+  <ItemGroup>
+    <PackageVersion Include="Umbraco.Cms.Core" Version="[17.4.0, 17.999.999)" />
+    <PackageVersion Include="Umbraco.Cms.Infrastructure" Version="[17.4.0, 17.999.999)" />
+    <PackageVersion Include="Umbraco.Cms.Web.Common" Version="[17.4.0, 17.999.999)" />
+    <PackageVersion Include="Umbraco.Cms.Api.Management" Version="[17.4.0, 17.999.999)" />
+    <PackageVersion Include="Umbraco.Cms.Persistence.EFCore" Version="[17.4.0, 17.999.999)" />
+    <PackageVersion Include="Umbraco.Cms.Persistence.EFCore.SqlServer" Version="[17.4.0, 17.999.999)" />
+    <PackageVersion Include="Umbraco.Cms.Persistence.EFCore.Sqlite" Version="[17.4.0, 17.999.999)" />
+  </ItemGroup>
+
+  <!-- OpenAPI (only needed if/when a Management API controller is added, e.g. for a
+       "refresh metadata" endpoint — mirrors Umbraco.Automate.OpenIddict.Core's usage) -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="[10.0.6, 10.999.999)" />
+  </ItemGroup>
+
+  <!-- Inter-product (Umbraco.Automate) — this package's actual dependency floor.
+       Pin these to whatever Core/OpenIddict versions this package was built and tested against. -->
+  <ItemGroup>
+    <PackageVersion Include="Umbraco.Automate.Core" Version="[17.2.0, 17.999.999)" />
+    <PackageVersion Include="Umbraco.Automate.OpenIddict" Version="[17.1.2, 17.999.999)" />
+  </ItemGroup>
+
+  <!-- OpenIddict (Client + WebIntegration for OAuth flows) -->
+  <ItemGroup>
+    <PackageVersion Include="OpenIddict.Client.WebIntegration" Version="[7.4.0, 7.999.999)" />
+  </ItemGroup>
+
+  <!-- Shared dependencies -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="[10.0.6, 10.999.999)" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="[10.0.6, 10.999.999)" />
+  </ItemGroup>
+
+  <!-- Test dependencies -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="[10.0.2, 10.999.999)" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Shouldly" Version="4.2.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <!-- WireMock.Net for recorded Salesforce REST API fixtures in integration tests —
+         confirm against however Slack/OpenIddict fake their provider API before adding;
+         not present in the monorepo's own Directory.Packages.props today. -->
+  </ItemGroup>
+</Project>

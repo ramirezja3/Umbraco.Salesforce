@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Meta-package: the single NuGet package an implementer installs. Bundles Core +
+         both persistence providers, mirroring Umbraco.Automate.OpenIddict's meta-package
+         (Umbraco.Automate.Slack has no equivalent because Slack ships no persistence). -->
+    <PropertyGroup>
+      <Title>Umbraco Automate Salesforce</Title>
+      <Description>Salesforce connection, triggers, and actions for Umbraco Automate</Description>
+      <PackageReadmeFile>docs\README.md</PackageReadmeFile>
+      <IncludeBuildOutput>false</IncludeBuildOutput>
+      <IncludeSymbols>false</IncludeSymbols>
+      <IncludeReferencedProjects>true</IncludeReferencedProjects>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\README.md" Pack="true" PackagePath="docs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Umbraco.Automate.Salesforce.Core\Umbraco.Automate.Salesforce.Core.csproj" />
+        <ProjectReference Include="..\Umbraco.Automate.Salesforce.Persistence.SqlServer\Umbraco.Automate.Salesforce.Persistence.SqlServer.csproj" />
+        <ProjectReference Include="..\Umbraco.Automate.Salesforce.Persistence.Sqlite\Umbraco.Automate.Salesforce.Persistence.Sqlite.csproj" />
+    </ItemGroup>
+
+</Project>

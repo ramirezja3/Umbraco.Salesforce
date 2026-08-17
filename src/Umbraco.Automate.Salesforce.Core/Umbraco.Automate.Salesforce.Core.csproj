@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <!-- Razor SDK RCL — same shape as Umbraco.Automate.Slack's single project and
+         Umbraco.Automate.OpenIddict.Core. Holds Actions/, Triggers/, Connection/,
+         Configuration/, and Metadata/ (Describe-metadata cache service, see CLAUDE.md §5). -->
+    <PropertyGroup>
+        <Title>Umbraco Automate Salesforce Core</Title>
+        <Description>Salesforce connection, triggers, and actions for Umbraco Automate</Description>
+        <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+        <StaticWebAssetBasePath>App_Plugins/UmbracoAutomateSalesforce</StaticWebAssetBasePath>
+        <!-- Razor SDK auto-includes root-level JSON as Content, which collides with the
+             explicit include of the generated appsettings-schema JSON below (mirrors Slack). -->
+        <EnableDefaultContentItems>false</EnableDefaultContentItems>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <UseProjectReferences Condition="'$(UseProjectReferences)' == ''">true</UseProjectReferences>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="OpenIddict.Client.WebIntegration" />
+    </ItemGroup>
+
+    <!-- Sibling-monorepo dev mode: resolves against a local ../../../Umbraco.Automate checkout
+         (see root README "Repository home"). Falls back to NuGet PackageReference below when
+         that checkout isn't present, so a fresh clone of this repo alone still builds. -->
+    <ItemGroup Condition="'$(UseProjectReferences)' == 'true' AND Exists('..\..\..\Umbraco.Automate\src\Umbraco.Automate.Core\Umbraco.Automate.Core.csproj')">
+        <ProjectReference Include="..\..\..\Umbraco.Automate\src\Umbraco.Automate.Core\Umbraco.Automate.Core.csproj" />
+        <ProjectReference Include="..\..\..\Umbraco.Automate.OpenIddict\src\Umbraco.Automate.OpenIddict\Umbraco.Automate.OpenIddict.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(UseProjectReferences)' != 'true' OR !Exists('..\..\..\Umbraco.Automate\src\Umbraco.Automate.Core\Umbraco.Automate.Core.csproj')">
+        <PackageReference Include="Umbraco.Automate.Core" />
+        <PackageReference Include="Umbraco.Automate.OpenIddict" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>Umbraco.Automate.Salesforce.Persistence.SqlServer</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>Umbraco.Automate.Salesforce.Persistence.Sqlite</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>Umbraco.Automate.Salesforce.Tests.Unit</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>Umbraco.Automate.Salesforce.Tests.Integration</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <!-- Ship buildTransitive props so consuming sites' CopyUmbracoJsonSchemaFiles target
+         discovers the appsettings schema (mirrors Slack). Populated once
+         UmbracoAutomateSalesforceSchema.cs and the JsonSchemaGenerate target land — see
+         Umbraco.Automate.Slack.Core.csproj's GenerateAppsettingsSchema target for the pattern. -->
+    <ItemGroup>
+        <Content Include="buildTransitive\**" PackagePath="buildTransitive" />
+    </ItemGroup>
+
+</Project>
