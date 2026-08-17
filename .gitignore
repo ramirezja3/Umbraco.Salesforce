@@ -35,6 +35,9 @@ artifacts/
 # Environment-specific settings (may contain secrets — use user-secrets instead)
 **/appsettings.Development.json
 **/appsettings.Local.json
+.env
+.env.*
+*.env
 
 # Node
 node_modules/

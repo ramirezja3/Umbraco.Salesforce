@@ -61,7 +61,12 @@ public sealed class RecordDeletedTrigger
             foreach (var record in deletedRecords.EnumerateArray())
             {
                 var recordId = record.GetProperty("id").GetString()!;
-                var deletedDate = record.GetProperty("deletedDate").GetDateTime().ToUniversalTime();
+                // Not JsonElement.GetDateTime(): Salesforce emits "+0000" (no colon in the UTC
+                // offset), which System.Text.Json's strict RFC 3339 parser rejects outright —
+                // confirmed against a real org. DateTime.Parse handles it, same as every other
+                // trigger's date fields (which go through SalesforceJsonHelpers, string-typed).
+                var deletedDate = DateTime.Parse(record.GetProperty("deletedDate").GetString()!,
+                    null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal);
 
                 events.Add(new TriggerEvent<RecordDeletedTriggerOutput>
                 {
