@@ -68,12 +68,23 @@ Once local Connected App credentials became available, this package's actual pro
 
 ## 1. Reference material (read this first)
 
+**There is a real, working local clone of the actual monorepo for this — use it, don't rely on memory or guesswork about what any of these packages contain.** It lives at `../Umbraco.Automate` (sibling to this repo's own root), checked out on `v17/dev` with full history (not shallow — Nerdbank.GitVersioning, which Core/OpenIddict both use, needs full history to compute a version and fails outright on a shallow clone). If it's missing, recreate it:
+
+```bash
+git clone https://github.com/umbraco/Umbraco.Automate.git ../Umbraco.Automate
+cd ../Umbraco.Automate && git checkout v17/dev
+```
+
+**Gotcha already hit once, don't re-trip on it:** that clone is the *whole monorepo*, not just the Core product. `Umbraco.Automate.Core.csproj` lives one level deeper than the clone root, under the monorepo's own `Umbraco.Automate/` product folder — i.e. `../Umbraco.Automate/Umbraco.Automate/src/Umbraco.Automate.Core/Umbraco.Automate.Core.csproj`, not `../Umbraco.Automate/src/...`. Same one-extra-level pattern for OpenIddict (`../Umbraco.Automate/Umbraco.Automate.OpenIddict/src/...`) and Slack (`../Umbraco.Automate/Umbraco.Automate.Slack/...`). This package's own `Umbraco.Automate.Salesforce.Core.csproj` already has the right paths in its `UseProjectReferences` block — check there if this ever seems to have drifted, rather than re-deriving it from scratch.
+
+**When in doubt about anything — not just Slack's patterns, but any Core behavior, service signature, or platform constraint — read the actual source in that clone first.** This brief and its own corrections in §0a describe *intent* and *what's been confirmed*; they are not a substitute for reading the code when something new comes up that isn't already covered here. Core (`Umbraco.Automate/Umbraco.Automate/`) is the bigger, more authoritative reference than Slack for anything that isn't a direct connection-type/action pattern — trigger dispatch, workspace/connection services, EF Core persistence conventions, background job base classes, the whole `Umbraco.Automate.Core.Triggers`/`.Actions`/`.Connections`/`.Workspaces` namespace tree. Slack is the template for the narrow slice of things it actually demonstrates (one connection type, one action) — see the bullet below for exactly what that slice is. Don't guess an API shape from either package's `CLAUDE.md` alone when the real `.cs` file is one `Read`/`Grep` call away in the clone.
+
 Before writing any code, pull down and actually read these — don't rely on memory of what they "probably" contain:
 
-- `https://github.com/umbraco/Umbraco.Automate` — monorepo root. Read the root `CLAUDE.md` and `README.md`.
-- `Umbraco.Automate/` — the core package (workflow engine, triggers/actions abstractions, connections, workspaces). Read `Umbraco.Automate/CLAUDE.md`.
-- `Umbraco.Automate.OpenIddict/` — reusable OAuth client infrastructure (built on OpenIddict Client WebIntegration). Read `Umbraco.Automate.OpenIddict/CLAUDE.md`. **Salesforce OAuth (Web Server / Authorization Code + refresh token flow) should be implemented on top of this, exactly the way Slack's OAuth is**, not with a bespoke OAuth client.
-- `Umbraco.Automate.Slack/` — **the template for the parts of this package that have a direct Slack equivalent** (a single connection type, actions, config-driven OAuth scopes). It is *not* a template for persistence, custom UI, or triggers — Slack has none of those. Read `Umbraco.Automate.Slack/CLAUDE.md` line by line and confirm, rather than assume:
+- The clone at `../Umbraco.Automate` (see above) — read the root `CLAUDE.md` and `README.md` first for orientation, then go straight to source for anything specific.
+- `Umbraco.Automate/Umbraco.Automate/` within that clone — the core package (workflow engine, triggers/actions abstractions, connections, workspaces). Read `Umbraco.Automate/Umbraco.Automate/CLAUDE.md`, then the actual source under `src/Umbraco.Automate.Core/` for whatever service or extension point is in question.
+- `Umbraco.Automate.OpenIddict/` within the clone — reusable OAuth client infrastructure (built on OpenIddict Client WebIntegration). Read `Umbraco.Automate.OpenIddict/CLAUDE.md`. **Salesforce OAuth (Web Server / Authorization Code + refresh token flow) should be implemented on top of this, exactly the way Slack's OAuth is**, not with a bespoke OAuth client.
+- `Umbraco.Automate.Slack/` within the clone — **the template for the parts of this package that have a direct Slack equivalent** (a single connection type, actions, config-driven OAuth scopes). It is *not* a template for persistence, custom UI, or triggers — Slack has none of those. Read `Umbraco.Automate.Slack/CLAUDE.md` line by line and confirm, rather than assume:
   - it is one RCL project (no Core/Persistence/Web split) — see §0a
   - namespace and folder conventions actually used inside that single project (confirm exact folder names against the real repo, don't guess)
   - registration is attribute-based auto-discovery, not an `IComposer`-driven manual registration call — see §0a
@@ -86,7 +97,7 @@ Before writing any code, pull down and actually read these — don't rely on mem
 - `docs/engineering-spec.md` and `docs/identity-ownership-permissions.md` in the monorepo — the platform's contracts for how a provider must behave to be considered "well-behaved" (permission scoping to workspaces, connection ownership, audit logging, etc.)
 - Umbraco's public docs: `https://docs.umbraco.com/umbraco-automate/add-ons/slack/installation` and the sibling pages — this is the *installation experience* an implementer has for Slack today. The Salesforce install experience must read the same way: register an app, add a redirect URL, paste a client ID/secret into config, restart, authenticate. No steps beyond that should be needed.
 
-If anything below conflicts with what you find in the real Slack/OpenIddict source, **the real source wins** — update §0a with the correction and proceed on the corrected basis. This document describes intent; the actual repos are ground truth for mechanics.
+If anything below conflicts with what you find in the real Core/Slack/OpenIddict source, **the real source wins** — update §0a with the correction and proceed on the corrected basis. This document describes intent; the actual repo (the clone at `../Umbraco.Automate`) is ground truth for mechanics, for Core just as much as for Slack.
 
 ---
 
@@ -301,8 +312,8 @@ Give implementers working starting points, same spirit as the Deploy provider's 
 
 ## 13. When you (the AI agent) get stuck
 
-1. Re-read the relevant section of `Umbraco.Automate.Slack/CLAUDE.md` and `Umbraco.Automate.OpenIddict/CLAUDE.md` and the actual source for the equivalent concept (connection type, action, trigger, migration). Copy the *pattern*, not literal Slack/OpenIddict strings — and use OpenIddict as the primary structural reference for anything involving persistence or project layout, Slack as the primary reference for connection/action shape (§0a).
-2. Check `docs/engineering-spec.md` in the monorepo for the platform contract you're implementing against.
+1. **Go read the actual source in the `../Umbraco.Automate` clone (see §1) — not just Slack's.** Don't confine this to "when confused about a Slack-shaped thing" — Core is the bigger, more load-bearing reference and most of what this package now needs (trigger dispatch, workspace/connection resolution, background job base classes, EF Core persistence conventions) has no Slack equivalent at all, only a Core one. Re-read the relevant section of `Umbraco.Automate/Umbraco.Automate/CLAUDE.md`, `Umbraco.Automate.Slack/CLAUDE.md`, and `Umbraco.Automate.OpenIddict/CLAUDE.md`, then the actual `.cs` source for the equivalent concept (connection type, action, trigger, migration, service interface). Copy the *pattern*, not literal strings — use OpenIddict as the primary structural reference for persistence/project layout, Slack as the primary reference for connection/action shape, and Core as the reference for everything else (§0a).
+2. Check `docs/engineering-spec.md` in the monorepo (in the clone) for the platform contract you're implementing against.
 3. Check current Salesforce documentation for anything API-version-specific (OAuth scopes, REST endpoints, CDC/Pub-Sub setup) — Salesforce API versions and best-practice guidance change multiple times a year, so verify current before hardcoding version numbers or endpoint shapes.
 4. If the real source and this brief disagree, the real source wins — but **update §0a with the correction** before proceeding, so the next session doesn't rediscover the same fact from scratch.
 5. If something here is ambiguous or missing (e.g. exact persistence project naming, exact attribute usage), don't guess silently — note the assumption made and where in the source it was inferred from, so a human reviewer can confirm. Add it to §0a as a pending/unconfirmed item if it's significant enough to affect other sections.

@@ -18,17 +18,26 @@ dependency — you never install it by hand.
 ## Repository home
 
 This repo currently stands alone at `Salesforce v1/`. For local development it
-expects a sibling checkout of the `umbraco/Umbraco.Automate` monorepo at
-`../Umbraco.Automate` (same relative depth Slack/OpenIddict use inside that
-monorepo), checked out to **`v17/dev`** — the active LTS line this package
-targets (the repo's default branch is `v18/dev`; don't build against that one).
-So `UseProjectReferences=true` builds resolve Core/OpenIddict by project
-reference instead of NuGet. Clone and switch branches before building:
+expects a sibling checkout of the *whole* `umbraco/Umbraco.Automate` monorepo
+at `../Umbraco.Automate`, checked out to **`v17/dev`** — the active LTS line
+this package targets (the repo's default branch is `v18/dev`; don't build
+against that one) — with **full history, not a shallow clone**: Core and
+OpenIddict both use Nerdbank.GitVersioning, which needs full history to compute
+a version and fails outright on `--depth 1`. Clone, switch branches, and (if
+you did shallow-clone) unshallow before building:
 
 ```bash
 git clone https://github.com/umbraco/Umbraco.Automate.git ../Umbraco.Automate
 cd ../Umbraco.Automate && git checkout v17/dev
+# If you cloned with --depth 1 at any point:
+git fetch --unshallow origin v17/dev
 ```
+
+That clone is the *monorepo root*, not the Core product folder directly — Core
+and OpenIddict each live one level further in, under their own like-named
+product folders within it (e.g. `../Umbraco.Automate/Umbraco.Automate/src/...`,
+not `../Umbraco.Automate/src/...`). This package's `.csproj` files already
+account for that extra nesting; see CLAUDE.md §1 if it ever looks wrong.
 
 Without that sibling checkout, the build still works — it falls back to the
 `Umbraco.Automate.Core` / `Umbraco.Automate.OpenIddict` NuGet packages pinned in

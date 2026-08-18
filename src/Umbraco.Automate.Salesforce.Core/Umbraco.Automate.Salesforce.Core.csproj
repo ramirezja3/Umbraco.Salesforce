@@ -23,14 +23,18 @@
     </ItemGroup>
 
     <!-- Sibling-monorepo dev mode: resolves against a local ../../../Umbraco.Automate checkout
-         (see root README "Repository home"). Falls back to NuGet PackageReference below when
-         that checkout isn't present, so a fresh clone of this repo alone still builds. -->
-    <ItemGroup Condition="'$(UseProjectReferences)' == 'true' AND Exists('..\..\..\Umbraco.Automate\src\Umbraco.Automate.Core\Umbraco.Automate.Core.csproj')">
-        <ProjectReference Include="..\..\..\Umbraco.Automate\src\Umbraco.Automate.Core\Umbraco.Automate.Core.csproj" />
-        <ProjectReference Include="..\..\..\Umbraco.Automate.OpenIddict\src\Umbraco.Automate.OpenIddict\Umbraco.Automate.OpenIddict.csproj" />
+         (see root README "Repository home"). That's a clone of the *whole* umbraco/Umbraco.Automate
+         monorepo (not just the Core product) — Core and OpenIddict each live one level further
+         in, under their own like-named product folders within it, exactly as in the real repo
+         (confirm this nesting against the actual clone before "fixing" it again if it ever looks
+         wrong — it tripped up this exact path once already). Falls back to NuGet PackageReference
+         below when that checkout isn't present, so a fresh clone of this repo alone still builds. -->
+    <ItemGroup Condition="'$(UseProjectReferences)' == 'true' AND Exists('..\..\..\Umbraco.Automate\Umbraco.Automate\src\Umbraco.Automate.Core\Umbraco.Automate.Core.csproj')">
+        <ProjectReference Include="..\..\..\Umbraco.Automate\Umbraco.Automate\src\Umbraco.Automate.Core\Umbraco.Automate.Core.csproj" />
+        <ProjectReference Include="..\..\..\Umbraco.Automate\Umbraco.Automate.OpenIddict\src\Umbraco.Automate.OpenIddict\Umbraco.Automate.OpenIddict.csproj" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(UseProjectReferences)' != 'true' OR !Exists('..\..\..\Umbraco.Automate\src\Umbraco.Automate.Core\Umbraco.Automate.Core.csproj')">
+    <ItemGroup Condition="'$(UseProjectReferences)' != 'true' OR !Exists('..\..\..\Umbraco.Automate\Umbraco.Automate\src\Umbraco.Automate.Core\Umbraco.Automate.Core.csproj')">
         <PackageReference Include="Umbraco.Automate.Core" />
         <PackageReference Include="Umbraco.Automate.OpenIddict" />
     </ItemGroup>
