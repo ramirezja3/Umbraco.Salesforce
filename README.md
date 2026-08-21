@@ -1,10 +1,9 @@
-# Umbraco.Automate.Salesforce
+# Umbraco Automate Salesforce
 
 Salesforce connection, triggers, and actions for [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate).
 
 Mirrors the structure and conventions of `Umbraco.Automate.Slack` and
-`Umbraco.Automate.OpenIddict` — see [CLAUDE.md](CLAUDE.md) for the full brief and
-the reasoning behind every structural choice below.
+`Umbraco.Automate.OpenIddict`.
 
 ## Prerequisites
 
@@ -14,6 +13,31 @@ the reasoning behind every structural choice below.
 
 `Umbraco.Automate.OpenIddict` is pulled in automatically as a transitive NuGet
 dependency — you never install it by hand.
+
+## Documentation
+
+- [docs/installation.md](docs/installation.md) — Connected App setup, configuration, first connect.
+- [docs/triggers.md](docs/triggers.md) — the one Salesforce trigger this package ships and why.
+- [docs/actions.md](docs/actions.md) — the seven Salesforce actions, their inputs/outputs, and example use.
+- [docs/security.md](docs/security.md) — the security/compliance posture this package targets.
+- [docs/troubleshooting.md](docs/troubleshooting.md) — common Salesforce error codes and what to do about each.
+
+## Verifying a packed release actually installs
+
+Every build in this repo up to `scripts/pack-release.ps1` builds via a `ProjectReference` to a
+sibling `../Umbraco.Automate` checkout (see below) — that proves the code works, not that the
+*package* does. Before publishing a release:
+
+```powershell
+./scripts/pack-release.ps1                    # packs all 4 projects with real dependency pins
+./scripts/install-package-test-site.ps1       # spins up a fresh site and installs from the pack output
+```
+
+The second script creates a genuinely separate Umbraco 17 site under `demos/v17/` and installs
+`Umbraco.Automate` (from nuget.org) and `Umbraco.Automate.Salesforce` (from the local pack output)
+as real NuGet packages — no project references. Confirm the server log shows `Running N pending
+Automate migrations` / `Automate migrations completed successfully`, and that **Automation →
+Connections → Create** lists both Salesforce connection types, before publishing.
 
 ## Repository home
 
@@ -37,7 +61,7 @@ That clone is the *monorepo root*, not the Core product folder directly — Core
 and OpenIddict each live one level further in, under their own like-named
 product folders within it (e.g. `../Umbraco.Automate/Umbraco.Automate/src/...`,
 not `../Umbraco.Automate/src/...`). This package's `.csproj` files already
-account for that extra nesting; see CLAUDE.md §1 if it ever looks wrong.
+account for that extra nesting via their `ProjectReference` paths.
 
 Without that sibling checkout, the build still works — it falls back to the
 `Umbraco.Automate.Core` / `Umbraco.Automate.OpenIddict` NuGet packages pinned in

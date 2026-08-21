@@ -1,0 +1,86 @@
+# CI for Umbraco.Automate.Salesforce.
+#
+# This is a standalone-repo adaptation of the umbraco/Umbraco.Automate monorepo's own
+# build -> test -> pack shape (see .azure-pipelines/templates/pack-product.yml there) — this
+# repo doesn't share that monorepo's reusable templates, so the equivalent steps are inlined
+# here instead of templated.
+#
+# Not yet wired to a real Azure DevOps project/service connection — see docs/dev-notes.md's Definition
+# of Done. Checked in now so the build/test/pack contract is defined and versioned, even before
+# a pipeline actually runs it.
+
+trigger:
+    branches:
+        include:
+            - main
+pr:
+    branches:
+        include:
+            - main
+
+pool:
+    vmImage: "windows-latest"
+
+variables:
+    - name: BuildConfiguration
+      value: "Release"
+
+stages:
+    - stage: Build
+      displayName: Build and test
+      jobs:
+          - job: BuildAndTest
+            displayName: Build, unit test, and integration-test-build
+            steps:
+                - task: UseDotNet@2
+                  displayName: Install .NET SDK
+                  inputs:
+                      packageType: sdk
+                      useGlobalJson: true
+
+                - script: dotnet restore Umbraco.Automate.Salesforce.slnx
+                  displayName: Restore (real NuGet dependencies, not sibling project references)
+                  env:
+                      UseProjectReferences: "false"
+
+                - script: dotnet build Umbraco.Automate.Salesforce.slnx --configuration $(BuildConfiguration) --no-restore -p:UseProjectReferences=false
+                  displayName: Build
+
+                - script: dotnet test tests/Umbraco.Automate.Salesforce.Tests.Unit/Umbraco.Automate.Salesforce.Tests.Unit.csproj --configuration $(BuildConfiguration) --no-build --logger trx -p:UseProjectReferences=false
+                  displayName: Run unit tests
+
+                - task: PublishTestResults@2
+                  displayName: Publish test results
+                  condition: succeededOrFailed()
+                  inputs:
+                      testResultsFormat: "VSTest"
+                      testResultsFiles: "**/*.trx"
+
+                # Integration tests are opt-in and no-op without live Salesforce credentials
+                # (see tests/.../LiveSalesforceCredentials) — building them still catches
+                # compile-time regressions in CI without needing real credentials in the pipeline.
+                - script: dotnet build tests/Umbraco.Automate.Salesforce.Tests.Integration/Umbraco.Automate.Salesforce.Tests.Integration.csproj --configuration $(BuildConfiguration) -p:UseProjectReferences=false
+                  displayName: Build integration test project (no live credentials in CI)
+
+    - stage: Pack
+      displayName: Pack NuGet packages
+      dependsOn: Build
+      condition: succeeded()
+      jobs:
+          - job: Pack
+            displayName: Pack all 4 projects
+            steps:
+                - task: UseDotNet@2
+                  displayName: Install .NET SDK
+                  inputs:
+                      packageType: sdk
+                      useGlobalJson: true
+
+                - pwsh: ./scripts/pack-release.ps1 -OutputDirectory "$(Build.ArtifactStagingDirectory)/nupkg"
+                  displayName: Pack (Core, Persistence.SqlServer, Persistence.Sqlite, meta-package)
+
+                - task: PublishBuildArtifacts@1
+                  displayName: Publish nupkg artifacts
+                  inputs:
+                      pathToPublish: "$(Build.ArtifactStagingDirectory)/nupkg"
+                      artifactName: nupkg
