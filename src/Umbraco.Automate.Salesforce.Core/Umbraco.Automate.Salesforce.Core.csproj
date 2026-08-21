@@ -2,7 +2,7 @@
 
     <!-- Razor SDK RCL — same shape as Umbraco.Automate.Slack's single project and
          Umbraco.Automate.OpenIddict.Core. Holds Actions/, Triggers/, Connection/,
-         Configuration/, and Metadata/ (Describe-metadata cache service, see CLAUDE.md §5). -->
+         Configuration/, and Metadata/ (Describe-metadata cache service, see docs/dev-notes.md §5). -->
     <PropertyGroup>
         <Title>Umbraco Automate Salesforce Core</Title>
         <Description>Salesforce connection, triggers, and actions for Umbraco Automate</Description>
@@ -11,6 +11,15 @@
         <!-- Razor SDK auto-includes root-level JSON as Content, which collides with the
              explicit include of the generated appsettings-schema JSON below (mirrors Slack). -->
         <EnableDefaultContentItems>false</EnableDefaultContentItems>
+        <!-- Class library (non-Web-SDK) projects don't copy transitive PackageReference DLLs to
+             their own bin output by default — only executable/Web projects do. GenerateAppsettingsSchema
+             below reflection-loads $(TargetPath) via JsonSchemaGenerate, which needs
+             Umbraco.Automate.OpenIddict.Core.dll (referenced by UmbracoAutomateSalesforceSchema.cs)
+             sitting right next to it to resolve. Found by actually building with
+             -p:UseProjectReferences=false (real NuGet packages, not project references, which
+             always copy transitively) — ProjectReference mode never exercises this because project
+             references DO copy transitively, masking the gap in local/dev builds. -->
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -58,11 +67,28 @@
     </ItemGroup>
 
     <!-- Ship buildTransitive props so consuming sites' CopyUmbracoJsonSchemaFiles target
-         discovers the appsettings schema (mirrors Slack). Populated once
-         UmbracoAutomateSalesforceSchema.cs and the JsonSchemaGenerate target land — see
-         Umbraco.Automate.Slack.Core.csproj's GenerateAppsettingsSchema target for the pattern. -->
+         (from Umbraco.Cms.Targets) discovers the schema and copies it into the project —
+         mirrors Umbraco.Automate.Slack's Umbraco.Automate.Slack.csproj exactly. -->
     <ItemGroup>
         <Content Include="buildTransitive\**" PackagePath="buildTransitive" />
     </ItemGroup>
+
+    <!-- Add JSON schema file to package output -->
+    <PropertyGroup>
+        <_UmbracoAutomateSalesforceJsonSchemaReference>appsettings-schema.Umbraco.Automate.Salesforce.json</_UmbracoAutomateSalesforceJsonSchemaReference>
+    </PropertyGroup>
+    <ItemGroup>
+        <Content Include="$(_UmbracoAutomateSalesforceJsonSchemaReference)" PackagePath="" Visible="false" />
+        <Clean Include="$(_UmbracoAutomateSalesforceJsonSchemaReference)" />
+    </ItemGroup>
+
+    <!-- Generate JSON schema on build (and before copying to project) -->
+    <Target Name="GenerateAppsettingsSchema" BeforeTargets="Build;CopyUmbracoJsonSchemaFiles" Inputs="$(TargetPath)" Outputs="$(_UmbracoAutomateSalesforceJsonSchemaReference)">
+        <Message Text="Generating $(_UmbracoAutomateSalesforceJsonSchemaReference)" Importance="high" />
+        <JsonSchemaGenerate AssemblyPath="$(TargetPath)" TypeName="UmbracoAutomateSalesforceSchema" OutputPath="$(_UmbracoAutomateSalesforceJsonSchemaReference)" IncludeObsoleteProperties="false" />
+        <ItemGroup>
+            <FileWrites Include="$(_UmbracoAutomateSalesforceJsonSchemaReference)" />
+        </ItemGroup>
+    </Target>
 
 </Project>

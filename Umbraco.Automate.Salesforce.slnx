@@ -5,7 +5,7 @@
     <Project Path="src/Umbraco.Automate.Salesforce.Persistence.SqlServer/Umbraco.Automate.Salesforce.Persistence.SqlServer.csproj" />
     <Project Path="src/Umbraco.Automate.Salesforce.Persistence.Sqlite/Umbraco.Automate.Salesforce.Persistence.Sqlite.csproj" />
   </Folder>
-  <Folder Name="/tests/">
+  <Folder Name="/Tests/">
     <Project Path="tests/Umbraco.Automate.Salesforce.Tests.Unit/Umbraco.Automate.Salesforce.Tests.Unit.csproj" />
     <Project Path="tests/Umbraco.Automate.Salesforce.Tests.Integration/Umbraco.Automate.Salesforce.Tests.Integration.csproj" />
   </Folder>

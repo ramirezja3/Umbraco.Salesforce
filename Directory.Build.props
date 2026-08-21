@@ -36,8 +36,15 @@
     <EnableStrictModeForCompatibleTfms>true</EnableStrictModeForCompatibleTfms>
   </PropertyGroup>
 
-  <!-- No PackageIcon/LICENSE content wiring yet — add once brand assets (assets/logo-128.png)
-       and a LICENSE file exist, mirroring Umbraco.Automate.Slack's Directory.Build.props. -->
+  <!-- LICENSE now exists at the repo root and is packed, mirroring Umbraco.Automate.Slack's
+       Directory.Build.props (its path there is "..\LICENSE" because Slack's Directory.Build.props
+       lives one level down inside the monorepo; this repo's LICENSE is at the same level as this
+       file, hence no "..\"). PackageIcon is still pending a Salesforce-provider brand asset
+       (assets/logo-128.png) — add the <PackageIcon> property above and a matching <Content
+       Include> below once one exists. -->
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
 
   <PropertyGroup>
     <GitVersionBaseDirectory>$(MSBuildThisFileDirectory)</GitVersionBaseDirectory>
