@@ -8,11 +8,11 @@ namespace Umbraco.Automate.Salesforce.Actions;
 
 /// <summary>
 /// Deletes a Salesforce record by ID. Destructive — requires <see cref="DeleteRecordSettings.ConfirmDelete"/>
-/// to be explicitly set (CLAUDE.md §7/§8).
+/// to be explicitly set (docs/dev-notes.md §7/§8).
 /// </summary>
 [Action("salesforce.deleteRecord", "Delete Record",
     Description = "Deletes a Salesforce record by ID. Destructive — cannot be undone.",
-    Group = "CRM",
+    Group = "Salesforce",
     Icon = "icon-trash",
     ConnectionTypeAlias = "salesforce")]
 public sealed class DeleteRecordAction : ActionBase<DeleteRecordSettings, DeleteRecordOutput>

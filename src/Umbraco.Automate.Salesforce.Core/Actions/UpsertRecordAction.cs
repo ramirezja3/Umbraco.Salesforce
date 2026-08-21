@@ -9,12 +9,12 @@ namespace Umbraco.Automate.Salesforce.Actions;
 
 /// <summary>
 /// Creates or updates a Salesforce record by matching an External ID field — the idempotent,
-/// retry-safe write path (CLAUDE.md §2 non-negotiable #10, §7). Prefer this over Create Record
+/// retry-safe write path (docs/dev-notes.md §2 non-negotiable #10, §7). Prefer this over Create Record
 /// in generated example automations.
 /// </summary>
 [Action("salesforce.upsertRecord", "Upsert Record",
     Description = "Creates or updates a Salesforce record, matched by an External ID field.",
-    Group = "CRM",
+    Group = "Salesforce",
     Icon = "icon-merge",
     ConnectionTypeAlias = "salesforce")]
 public sealed class UpsertRecordAction : ActionBase<UpsertRecordSettings, UpsertRecordOutput>

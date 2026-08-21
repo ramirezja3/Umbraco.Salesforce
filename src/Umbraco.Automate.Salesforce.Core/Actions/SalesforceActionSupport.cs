@@ -66,9 +66,22 @@ internal static class SalesforceActionSupport
     /// Parses a JSON object field-map setting (e.g. <c>CreateRecordSettings.Fields</c>) into a
     /// dictionary. Returns a ready-made validation failure if it isn't valid JSON.
     /// </summary>
+    /// <remarks>
+    /// The returned dictionary uses <see cref="StringComparer.OrdinalIgnoreCase"/>, not the
+    /// default ordinal comparer <see cref="JsonSerializer"/> would otherwise produce. Found during
+    /// senior review (docs/dev-notes.md §0a): callers like <c>CreateLeadAction</c> parse an
+    /// <c>AdditionalFields</c> JSON blob into this dictionary and then assign named fields on top
+    /// of it (e.g. <c>fields["Email"] = settings.Email;</c>) so the named field always wins over a
+    /// duplicate in <c>AdditionalFields</c>. Salesforce field API names are themselves
+    /// case-insensitive, so a differently-cased duplicate (e.g. <c>"email"</c> in
+    /// <c>AdditionalFields</c>) must be recognized as the same key or both end up in the outgoing
+    /// JSON body instead of the named field cleanly winning. Built via explicit indexer
+    /// assignment (not a dictionary constructor/bulk-add) so a JSON payload that itself contains
+    /// case-variant duplicate keys degrades to "last one wins" rather than throwing.
+    /// </remarks>
     public static ActionResult? TryParseFields(string? json, out Dictionary<string, object?> fields)
     {
-        fields = [];
+        fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -77,7 +90,12 @@ internal static class SalesforceActionSupport
 
         try
         {
-            fields = JsonSerializer.Deserialize<Dictionary<string, object?>>(json) ?? [];
+            var parsed = JsonSerializer.Deserialize<Dictionary<string, object?>>(json) ?? [];
+            foreach (var (key, value) in parsed)
+            {
+                fields[key] = value;
+            }
+
             return null;
         }
         catch (JsonException ex)

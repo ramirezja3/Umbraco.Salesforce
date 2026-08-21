@@ -12,7 +12,7 @@ namespace Umbraco.Automate.Salesforce.Actions;
 /// </summary>
 [Action("salesforce.updateRecord", "Update Record",
     Description = "Updates a Salesforce record by ID with mapped field values.",
-    Group = "CRM",
+    Group = "Salesforce",
     Icon = "icon-edit",
     ConnectionTypeAlias = "salesforce")]
 public sealed class UpdateRecordAction : ActionBase<UpdateRecordSettings, UpdateRecordOutput>

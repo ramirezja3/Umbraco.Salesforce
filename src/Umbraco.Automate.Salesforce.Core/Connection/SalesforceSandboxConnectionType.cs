@@ -1,5 +1,4 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
+using System.Text.Json;
 using Umbraco.Automate.Core.Connections;
 using Umbraco.Automate.OpenIddict.ConnectionTypes;
 using Umbraco.Automate.OpenIddict.Credentials;
@@ -8,14 +7,15 @@ using Umbraco.Automate.Salesforce.Api;
 namespace Umbraco.Automate.Salesforce.Connection;
 
 /// <summary>
-/// Connection type for a Salesforce sandbox org (authenticates against
+/// Connection type for a Salesforce sandbox organization (authenticates against
 /// <c>test.salesforce.com</c>). See <see cref="SalesforceConnectionType"/> for the production
 /// equivalent and why these are two separate connection types.
 /// </summary>
-[ConnectionType("salesforce-sandbox", "Salesforce (Sandbox)", Group = "CRM", Icon = "icon-cloud", Description = "Connect to a Salesforce sandbox org")]
+[ConnectionType("salesforce-sandbox", "Salesforce (Sandbox)", Group = "Salesforce", Icon = "icon-cloud", Description = "Connect to a Salesforce sandbox organization")]
 public sealed class SalesforceSandboxConnectionType : OAuthConnectionTypeBase<SalesforceSandboxConnectionSettings>
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ISalesforceConnectionResolver _connectionResolver;
+    private readonly ISalesforceClient _client;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SalesforceSandboxConnectionType"/> class.
@@ -23,10 +23,12 @@ public sealed class SalesforceSandboxConnectionType : OAuthConnectionTypeBase<Sa
     public SalesforceSandboxConnectionType(
         ConnectionTypeInfrastructure infrastructure,
         IOAuthCredentialsService credentialsService,
-        IHttpClientFactory httpClientFactory)
+        ISalesforceConnectionResolver connectionResolver,
+        ISalesforceClient client)
         : base(infrastructure, credentialsService)
     {
-        _httpClientFactory = httpClientFactory;
+        _connectionResolver = connectionResolver;
+        _client = client;
     }
 
     /// <inheritdoc />
@@ -48,32 +50,17 @@ public sealed class SalesforceSandboxConnectionType : OAuthConnectionTypeBase<Sa
         }
 
         var credentialsId = ((SalesforceSandboxConnectionSettings)settings!).OAuthCredentialsId!.Value;
-        var token = await CredentialsService.GetValidAccessTokenAsync(credentialsId, cancellationToken);
-        var credentials = await CredentialsService.GetCredentialsAsync(credentialsId, cancellationToken);
-
-        if (string.IsNullOrEmpty(credentials?.AccountLabel)
-            || !Uri.TryCreate(credentials.AccountLabel, UriKind.Absolute, out var instanceUrl))
+        var connection = await _connectionResolver.ResolveAsync(credentialsId, cancellationToken);
+        if (connection is null)
         {
             return ConnectionValidationResult.Failure(
-                "No instance URL was captured for this connection. Reconnect the account.");
+                "The Salesforce access token is expired or revoked, or no instance URL was captured for this connection. Reconnect the account.");
         }
 
-        using var client = _httpClientFactory.CreateClient("UmbracoAutomate");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        SalesforceUserInfoResponse? response;
+        SalesforceApiResult result;
         try
         {
-            using var httpResponse = await client.GetAsync(
-                new Uri(instanceUrl, "/services/oauth2/userinfo"), cancellationToken);
-
-            if (!httpResponse.IsSuccessStatusCode)
-            {
-                return ConnectionValidationResult.Failure(
-                    $"Salesforce rejected the access token (HTTP {(int)httpResponse.StatusCode}).");
-            }
-
-            response = await httpResponse.Content.ReadFromJsonAsync<SalesforceUserInfoResponse>(cancellationToken);
+            result = await _client.SendAsync(connection, HttpMethod.Get, "/services/oauth2/userinfo", null, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -86,8 +73,14 @@ public sealed class SalesforceSandboxConnectionType : OAuthConnectionTypeBase<Sa
                 [ex.Message]);
         }
 
+        if (!result.IsSuccess)
+        {
+            return ConnectionValidationResult.Failure(result.Error!.Message);
+        }
+
+        var response = result.Json is { } json ? JsonSerializer.Deserialize<SalesforceUserInfoResponse>(json) : null;
         var org = response?.OrganizationId ?? "your Salesforce sandbox";
         var user = response?.PreferredUsername is null ? string.Empty : $" as {response.PreferredUsername}";
-        return ConnectionValidationResult.Success($"Connected to {org}{user} ({instanceUrl.Host}).");
+        return ConnectionValidationResult.Success($"Connected to {org}{user} ({connection.InstanceUrl.Host}).");
     }
 }

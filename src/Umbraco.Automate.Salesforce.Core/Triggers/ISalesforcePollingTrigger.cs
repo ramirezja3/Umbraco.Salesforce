@@ -5,7 +5,7 @@ namespace Umbraco.Automate.Salesforce.Triggers;
 /// <summary>
 /// Activation interface for Salesforce triggers driven by polling rather than a live event
 /// stream (CDC/Pub-Sub, §6 — not built in this pass) or an inbound webhook (not usable by a
-/// third-party trigger at all, per CLAUDE.md §0a: Core's webhook endpoint is hardcoded to its own
+/// third-party trigger at all, per docs/dev-notes.md §0a: Core's webhook endpoint is hardcoded to its own
 /// concrete <c>WebhookTrigger</c> type). Mirrors Core's own <see cref="IScheduledTrigger"/> —
 /// same shape, evaluated by <see cref="SalesforcePollingBackgroundJob"/> instead of Core's
 /// scheduled-trigger job.

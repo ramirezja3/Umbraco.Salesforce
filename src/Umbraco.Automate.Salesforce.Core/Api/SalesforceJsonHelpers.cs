@@ -4,7 +4,7 @@ namespace Umbraco.Automate.Salesforce.Api;
 
 /// <summary>
 /// Small conversions between <see cref="JsonElement"/> and the loosely-typed dictionaries used
-/// by action outputs — Salesforce record shape isn't statically typed in v1 (CLAUDE.md §0a: no
+/// by action outputs — Salesforce record shape isn't statically typed in v1 (docs/dev-notes.md §0a: no
 /// live Describe-metadata picker yet), so record fields surface as a plain field-name → value map.
 /// </summary>
 internal static class SalesforceJsonHelpers
@@ -43,5 +43,30 @@ internal static class SalesforceJsonHelpers
         JsonValueKind.False => false,
         JsonValueKind.Null => null,
         _ => value.Clone(),
+    };
+
+    /// <summary>
+    /// Converts a value produced by <see cref="Unwrap"/> to a <see cref="double"/>, regardless of
+    /// whether it was boxed as <see cref="long"/> (whole-number JSON literals, e.g. a round-dollar
+    /// Amount like <c>50000</c>) or <see cref="double"/> (anything with a decimal point).
+    /// </summary>
+    /// <remarks>
+    /// A boxed <see cref="long"/> can never satisfy an <c>as double?</c> cast — the C# <c>as</c>
+    /// operator does not perform numeric conversions between boxed value types, it only succeeds
+    /// when the runtime type already matches. Doing <c>(object)5L as double?</c> silently
+    /// evaluates to <c>null</c> instead of throwing, which is exactly the bug this helper exists to
+    /// avoid: <see cref="Triggers.OpportunityStageChangedTrigger"/> was doing that for every
+    /// Opportunity whose Amount happened to have no cents. Callers should use this instead of an
+    /// <c>as</c> cast for any numeric field pulled out of a field dictionary.
+    /// </remarks>
+    public static double? ToDouble(object? value) => value switch
+    {
+        null => null,
+        double d => d,
+        long l => l,
+        int i => i,
+        decimal m => (double)m,
+        float f => f,
+        _ => null,
     };
 }

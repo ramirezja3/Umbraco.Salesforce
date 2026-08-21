@@ -12,7 +12,7 @@ public sealed class SalesforceSandboxConnectionSettings : ISalesforceConnectionS
     /// Gets or sets the OAuth credential ID linking to the stored Salesforce sandbox tokens.
     /// </summary>
     [Field(Label = "Salesforce Sandbox",
-        Description = "Authenticate with your Salesforce sandbox org",
+        Description = "Authenticate with your Salesforce sandbox organization",
         EditorUiAlias = "Umb.Automate.OAuth",
         EditorConfig = """[{ "alias": "provider", "value": "SalesforceSandbox" }]""")]
     public Guid? OAuthCredentialsId { get; set; }

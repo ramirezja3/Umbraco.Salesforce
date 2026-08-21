@@ -4,7 +4,7 @@ namespace Umbraco.Automate.Salesforce.Actions;
 
 /// <summary>
 /// Settings for the <see cref="UpsertRecordAction"/> — the idempotent, retry-safe write path
-/// (CLAUDE.md §2 non-negotiable #10). Prefer this over Create Record wherever an external ID
+/// (docs/dev-notes.md §2 non-negotiable #10). Prefer this over Create Record wherever an external ID
 /// field is available, so a retried automation step can't create duplicate records.
 /// </summary>
 public sealed class UpsertRecordSettings

@@ -13,7 +13,7 @@ namespace Umbraco.Automate.Salesforce.Actions;
 /// </summary>
 [Action("salesforce.getRecord", "Get Record",
     Description = "Retrieves a Salesforce record by ID.",
-    Group = "CRM",
+    Group = "Salesforce",
     Icon = "icon-search",
     ConnectionTypeAlias = "salesforce")]
 public sealed class GetRecordAction : ActionBase<GetRecordSettings, GetRecordOutput>
@@ -66,9 +66,10 @@ public sealed class GetRecordAction : ActionBase<GetRecordSettings, GetRecordOut
 
         var apiVersion = _options.CurrentValue.ApiVersion;
         var path = $"/services/data/{apiVersion}/sobjects/{Uri.EscapeDataString(settings.ObjectApiName)}/{Uri.EscapeDataString(settings.RecordId)}";
-        if (!string.IsNullOrWhiteSpace(settings.Fields))
+        var cleanedFields = SalesforceFieldListHelper.CleanCommaSeparatedList(settings.Fields);
+        if (cleanedFields.Length > 0)
         {
-            path += $"?fields={Uri.EscapeDataString(settings.Fields)}";
+            path += $"?fields={Uri.EscapeDataString(cleanedFields)}";
         }
 
         var result = await _client.SendAsync(connection!, HttpMethod.Get, path, jsonBody: null, cancellationToken);

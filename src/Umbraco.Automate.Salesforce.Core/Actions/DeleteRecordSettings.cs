@@ -22,7 +22,7 @@ public sealed class DeleteRecordSettings
     /// <summary>
     /// Gets or sets a value indicating whether the destructive delete is explicitly confirmed.
     /// Must be set to <c>true</c> for the action to run — reduces accidental destructive
-    /// automations (CLAUDE.md §7/§8).
+    /// automations (docs/dev-notes.md §7/§8).
     /// </summary>
     [Field(Label = "Confirm Delete", Description = "This action is destructive and cannot be undone. Confirm to enable it.",
         SortOrder = 2)]

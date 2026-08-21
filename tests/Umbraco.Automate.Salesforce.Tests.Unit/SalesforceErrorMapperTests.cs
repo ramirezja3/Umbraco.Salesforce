@@ -75,4 +75,35 @@ public class SalesforceErrorMapperTests
 
         error.Category.ShouldBe(StepRunErrorCategory.RateLimiting);
     }
+
+    [Fact]
+    public void Map_BadOAuthTokenPlainTextBody_MapsOntoInvalidSessionId()
+    {
+        // Regression: Salesforce's identity endpoints (/services/oauth2/userinfo, /id/...)
+        // return a bare plain-text token on failure, not JSON — confirmed live calling
+        // userinfo with a stale access token. Must map onto the same INVALID_SESSION_ID code
+        // the REST Data API's JSON shape uses, so SalesforceClient's force-refresh-and-retry
+        // triggers for this shape too, not just the JSON one (docs/dev-notes.md §0a).
+        var error = SalesforceErrorMapper.Map(HttpStatusCode.Forbidden, "Bad_OAuth_Token");
+
+        error.ErrorCode.ShouldBe("INVALID_SESSION_ID");
+        error.Category.ShouldBe(StepRunErrorCategory.Authentication);
+        error.Message.ShouldContain("session is no longer valid", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Map_InvocableActionErrorShape_ExtractsNestedMessageAndStatusCode()
+    {
+        // Exact shape captured live from the chatterPost standard Invocable Action (docs/dev-notes.md
+        // §0a) — the error is nested under errors[0], unlike the standard REST array shape where
+        // message/errorCode sit directly on the top-level array element.
+        var body = """
+            [{"actionName":"chatterPost","errors":[{"statusCode":"UNKNOWN_EXCEPTION","message":"Verify the combination of your \"Target Name Or ID\" and \"Target Type\" fields to make sure you provide a valid user, Chatter group, or record to post to.","fields":[]}],"expectedError":false,"invocationId":null,"isSuccess":false,"outcome":null,"outputValues":null,"sortOrder":-1,"version":1}]
+            """;
+
+        var error = SalesforceErrorMapper.Map(HttpStatusCode.BadRequest, body);
+
+        error.ErrorCode.ShouldBe("UNKNOWN_EXCEPTION");
+        error.Message.ShouldContain("valid user, Chatter group, or record");
+    }
 }

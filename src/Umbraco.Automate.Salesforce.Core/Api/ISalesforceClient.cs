@@ -4,7 +4,7 @@ namespace Umbraco.Automate.Salesforce.Api;
 
 /// <summary>
 /// Executes calls against the Salesforce REST API (<c>/services/data/vXX.X/...</c>), applying
-/// backoff/retry on rate-limit responses and mapping errors into readable messages (CLAUDE.md
+/// backoff/retry on rate-limit responses and mapping errors into readable messages (docs/dev-notes.md
 /// §2 non-negotiable #7, §8). Actions resolve a <see cref="SalesforceConnectionContext"/> via
 /// <see cref="ISalesforceConnectionResolver"/> first, then call this.
 /// </summary>

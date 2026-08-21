@@ -9,7 +9,7 @@ public sealed class CreateRecordSettings
 {
     /// <summary>
     /// Gets or sets the Salesforce object API name to create a record of (e.g. "Lead", "Contact",
-    /// "My_Custom_Object__c"). Plain text in v1 — no live object picker yet, see CLAUDE.md §0a.
+    /// "My_Custom_Object__c"). Plain text in v1 — no live object picker yet, see docs/dev-notes.md §0a.
     /// </summary>
     [Field(Label = "Object", Description = "The Salesforce object API name, e.g. Lead, Contact, Opportunity.")]
     public string ObjectApiName { get; set; } = string.Empty;

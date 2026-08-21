@@ -15,7 +15,7 @@ namespace Umbraco.Automate.Salesforce.Actions;
 /// <para>
 /// <b>Bounding:</b> every query gets a <c>LIMIT</c> clause, capped server-side by
 /// <c>Umbraco:Automate:Salesforce:MaxQueryRows</c> regardless of what the query or the step's
-/// "Max Rows" setting ask for (CLAUDE.md §7: "block obviously unsafe/unbounded queries").
+/// "Max Rows" setting ask for (docs/dev-notes.md §7: "block obviously unsafe/unbounded queries").
 /// </para>
 /// <para>
 /// <b>Injection:</b> this rejects anything that isn't a <c>SELECT</c> and any semicolon (defense
@@ -27,18 +27,23 @@ namespace Umbraco.Automate.Salesforce.Actions;
 /// authors who splice a bound value into a <c>WHERE ... = '...'</c> clause themselves should wrap
 /// it with <see cref="Api.SalesforceSoqlEscaper.EscapeStringLiteral"/> in the binding expression,
 /// or use a value that's controlled (e.g. an ID from a prior step), not raw untrusted end-user
-/// text (e.g. a webhook payload) — see CLAUDE.md §0a for the full reasoning.
+/// text (e.g. a webhook payload) — see docs/dev-notes.md §0a for the full reasoning.
 /// </para>
 /// </remarks>
 [Action("salesforce.queryRecords", "Query Records (SOQL)",
     Description = "Runs a bounded SOQL query and returns matching records.",
-    Group = "CRM",
+    Group = "Salesforce",
     Icon = "icon-search",
     ConnectionTypeAlias = "salesforce")]
 public sealed class QueryRecordsAction : ActionBase<QueryRecordsSettings, QueryRecordsOutput>
 {
+    // Captures an optional trailing OFFSET clause too (e.g. "LIMIT 10 OFFSET 5") so it survives
+    // being clamped/replaced — found during the actions/triggers edge-case audit (docs/dev-notes.md §0a):
+    // without the OFFSET group, a query already using this standard SOQL pagination pattern
+    // wouldn't match at all, and this method would append a *second* LIMIT clause at the end,
+    // producing invalid double-LIMIT SOQL that always fails.
     private static readonly Regex LimitClauseRegex = new(
-        @"\bLIMIT\s+(\d+)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        @"\bLIMIT\s+(\d+)(?<offset>\s+OFFSET\s+\d+)?\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly ISalesforceConnectionResolver _connectionResolver;
     private readonly ISalesforceClient _client;
@@ -154,6 +159,7 @@ public sealed class QueryRecordsAction : ActionBase<QueryRecordsSettings, QueryR
             return soql;
         }
 
-        return LimitClauseRegex.Replace(soql, $"LIMIT {maxRows}");
+        var offsetSuffix = match.Groups["offset"].Success ? match.Groups["offset"].Value : string.Empty;
+        return LimitClauseRegex.Replace(soql, $"LIMIT {maxRows}{offsetSuffix}");
     }
 }

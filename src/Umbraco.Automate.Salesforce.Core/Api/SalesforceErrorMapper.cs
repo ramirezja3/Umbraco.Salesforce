@@ -6,7 +6,7 @@ namespace Umbraco.Automate.Salesforce.Api;
 /// <summary>
 /// Maps a Salesforce REST API error response into a human-readable message and
 /// <see cref="StepRunErrorCategory"/>, so the automation Run log shows something an implementer
-/// can act on instead of a raw JSON dump (CLAUDE.md §7/§8). See also
+/// can act on instead of a raw JSON dump (docs/dev-notes.md §7/§8). See also
 /// docs/troubleshooting.md for the full error-code reference this mirrors.
 /// </summary>
 public static class SalesforceErrorMapper
@@ -30,6 +30,18 @@ public static class SalesforceErrorMapper
             return (null, null);
         }
 
+        // Salesforce's identity endpoints (/services/oauth2/userinfo, /id/...) — unlike the REST
+        // Data API — return a bare plain-text token on failure, not JSON, e.g. "Bad_OAuth_Token"
+        // for a stale/invalid access token. Confirmed live: the exact same underlying condition
+        // (an access token Salesforce no longer accepts) surfaces as this plain-text string here
+        // but as a JSON INVALID_SESSION_ID error from the REST Data API. Map it onto the same
+        // code so both the retry-with-refresh logic in SalesforceClient and the humanized message
+        // below treat the two shapes identically instead of only reacting to the JSON one.
+        if (rawBody.Trim().Equals("Bad_OAuth_Token", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("The Salesforce session is no longer valid.", "INVALID_SESSION_ID");
+        }
+
         try
         {
             using var document = JsonDocument.Parse(rawBody);
@@ -39,6 +51,22 @@ public static class SalesforceErrorMapper
             if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
             {
                 var first = root[0];
+
+                // Invocable Actions REST resource shape (used by actions like chatterPost,
+                // emailSimple): [{ actionName, isSuccess, errors: [{ statusCode, message, fields }], ... }].
+                // Confirmed live against a real organization — the error detail is nested one level deeper
+                // than the standard REST shape below, under a different field name (statusCode,
+                // not errorCode).
+                if (first.TryGetProperty("errors", out var errorsElement)
+                    && errorsElement.ValueKind == JsonValueKind.Array
+                    && errorsElement.GetArrayLength() > 0)
+                {
+                    var firstError = errorsElement[0];
+                    var invocableMessage = firstError.TryGetProperty("message", out var im) ? im.GetString() : null;
+                    var invocableCode = firstError.TryGetProperty("statusCode", out var ic) ? ic.GetString() : null;
+                    return (invocableMessage, invocableCode);
+                }
+
                 var message = first.TryGetProperty("message", out var m) ? m.GetString() : null;
                 var errorCode = first.TryGetProperty("errorCode", out var c) ? c.GetString() : null;
                 return (message, errorCode);
@@ -88,8 +116,8 @@ public static class SalesforceErrorMapper
             return errorCode switch
             {
                 "REQUEST_LIMIT_EXCEEDED" =>
-                    "Salesforce API request limit exceeded for this org. The action will retry with backoff; " +
-                    "if this keeps happening, the org's daily API allocation may be exhausted.",
+                    "Salesforce API request limit exceeded for this organization. The action will retry with backoff; " +
+                    "if this keeps happening, the organization's daily API allocation may be exhausted.",
                 "INVALID_SESSION_ID" =>
                     "The Salesforce session is no longer valid. Reconnect the Salesforce connection.",
                 "INSUFFICIENT_ACCESS_OR_READONLY" =>

@@ -1,7 +1,7 @@
 namespace Umbraco.Automate.Salesforce.Api;
 
 /// <summary>
-/// Escapes a value for safe interpolation into a SOQL string literal (CLAUDE.md §7/§8: "never
+/// Escapes a value for safe interpolation into a SOQL string literal (docs/dev-notes.md §7/§8: "never
 /// string-concatenate user/binding values into SOQL"). Salesforce's SOQL/SOSL parser treats
 /// <c>\</c> as an escape character and <c>'</c> as a string delimiter — escaping both prevents a
 /// bound value from breaking out of its literal.

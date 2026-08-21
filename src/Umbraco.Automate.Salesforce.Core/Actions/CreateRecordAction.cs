@@ -12,7 +12,7 @@ namespace Umbraco.Automate.Salesforce.Actions;
 /// </summary>
 [Action("salesforce.createRecord", "Create Record",
     Description = "Creates a Salesforce record of a configured object type with mapped field values.",
-    Group = "CRM",
+    Group = "Salesforce",
     Icon = "icon-add",
     ConnectionTypeAlias = "salesforce")]
 public sealed class CreateRecordAction : ActionBase<CreateRecordSettings, CreateRecordOutput>

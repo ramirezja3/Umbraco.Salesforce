@@ -3,7 +3,7 @@ namespace Umbraco.Automate.Salesforce.Persistence;
 /// <summary>
 /// Per-automation polling checkpoint for Salesforce polling triggers (see
 /// <c>Umbraco.Automate.Salesforce.Triggers.ISalesforcePollingTrigger</c>). One row per automation
-/// — triggers have no Connection concept in this platform version (see CLAUDE.md §0a), so this
+/// — triggers have no Connection concept in this platform version (see docs/dev-notes.md §0a), so this
 /// table is the only thing distinguishing "where a given automation's polling last left off."
 /// </summary>
 internal sealed class SalesforcePollingStateEntity

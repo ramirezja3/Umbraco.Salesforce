@@ -69,7 +69,10 @@ public sealed class LiveSalesforceFixture : IAsyncLifetime
         var accessToken = json.GetProperty("access_token").GetString()!;
         var instanceUrl = json.TryGetProperty("instance_url", out var iu) ? iu.GetString()! : Credentials.MyDomainUrl;
 
-        Connection = new SalesforceConnectionContext(accessToken, new Uri(instanceUrl));
+        // No stored OAuthCredentials backs this Client Credentials Flow token, so there's nothing
+        // for ISalesforceConnectionResolver.ForceRefreshAsync to refresh — Guid.Empty is fine,
+        // since these tests never provoke an INVALID_SESSION_ID mid-call.
+        Connection = new SalesforceConnectionContext(Guid.Empty, accessToken, new Uri(instanceUrl));
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(() =>
@@ -82,7 +85,8 @@ public sealed class LiveSalesforceFixture : IAsyncLifetime
         var options = new Mock<IOptionsMonitor<SalesforceApiOptions>>();
         options.Setup(o => o.CurrentValue).Returns(ApiOptions);
 
-        Client = new SalesforceClient(httpClientFactory.Object, options.Object, NullLogger<SalesforceClient>.Instance);
+        Client = new SalesforceClient(
+            httpClientFactory.Object, options.Object, Mock.Of<ISalesforceConnectionResolver>(), NullLogger<SalesforceClient>.Instance);
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

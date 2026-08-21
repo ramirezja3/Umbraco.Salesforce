@@ -16,7 +16,7 @@
         <PackageReference Include="xunit.runner.visualstudio" />
         <PackageReference Include="coverlet.collector" />
         <!-- Add a WireMock.Net (or equivalent) PackageReference here once the fixture layer for
-             recorded Salesforce REST API responses is designed — see CLAUDE.md §9 and confirm
+             recorded Salesforce REST API responses is designed — see docs/dev-notes.md §9 and confirm
              against whatever fixture approach Slack/OpenIddict's own integration tests use. -->
     </ItemGroup>
 

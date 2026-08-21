@@ -4,7 +4,7 @@ namespace Umbraco.Automate.Salesforce.Api;
 
 /// <summary>
 /// Partial shape of Salesforce's <c>/services/oauth2/userinfo</c> response, used by the
-/// connection types' <c>ValidateAsync</c> to confirm a token is live and report which org/user
+/// connection types' <c>ValidateAsync</c> to confirm a token is live and report which organization/user
 /// it's connected as.
 /// </summary>
 internal sealed class SalesforceUserInfoResponse

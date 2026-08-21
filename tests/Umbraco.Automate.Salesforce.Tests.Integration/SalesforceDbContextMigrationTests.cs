@@ -5,7 +5,7 @@ namespace Umbraco.Automate.Salesforce.Tests.Integration;
 
 /// <summary>
 /// Verifies the generated SQLite migration applies cleanly to a fresh database and is
-/// idempotent (running it twice is a no-op) — CLAUDE.md §9. No live Salesforce org needed;
+/// idempotent (running it twice is a no-op) — docs/dev-notes.md §9. No live Salesforce org needed;
 /// this only exercises the polling-state table's own schema.
 /// </summary>
 public class SalesforceDbContextMigrationTests : IDisposable

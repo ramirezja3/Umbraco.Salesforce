@@ -1,5 +1,4 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
+using System.Text.Json;
 using Umbraco.Automate.Core.Connections;
 using Umbraco.Automate.OpenIddict.ConnectionTypes;
 using Umbraco.Automate.OpenIddict.Credentials;
@@ -8,7 +7,7 @@ using Umbraco.Automate.Salesforce.Api;
 namespace Umbraco.Automate.Salesforce.Connection;
 
 /// <summary>
-/// Connection type for a production Salesforce org (authenticates against
+/// Connection type for a production Salesforce organization (authenticates against
 /// <c>login.salesforce.com</c>), using OAuth via OpenIddict WebIntegration.
 /// </summary>
 /// <remarks>
@@ -16,12 +15,13 @@ namespace Umbraco.Automate.Salesforce.Connection;
 /// separate connection types — not one type with an environment field — because OpenIddict
 /// Client registrations (and therefore each one's authorization/token endpoint) are fixed at
 /// startup from configuration; a single connection type has no way to redirect its OAuth
-/// challenge to a different issuer per connection instance. See CLAUDE.md §0a.
+/// challenge to a different issuer per connection instance. See docs/dev-notes.md §0a.
 /// </remarks>
-[ConnectionType("salesforce", "Salesforce", Group = "CRM", Icon = "icon-cloud", Description = "Connect to a Salesforce production org")]
+[ConnectionType("salesforce", "Salesforce", Group = "Salesforce", Icon = "icon-cloud", Description = "Connect to a Salesforce production organization")]
 public sealed class SalesforceConnectionType : OAuthConnectionTypeBase<SalesforceConnectionSettings>
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ISalesforceConnectionResolver _connectionResolver;
+    private readonly ISalesforceClient _client;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SalesforceConnectionType"/> class.
@@ -29,10 +29,12 @@ public sealed class SalesforceConnectionType : OAuthConnectionTypeBase<Salesforc
     public SalesforceConnectionType(
         ConnectionTypeInfrastructure infrastructure,
         IOAuthCredentialsService credentialsService,
-        IHttpClientFactory httpClientFactory)
+        ISalesforceConnectionResolver connectionResolver,
+        ISalesforceClient client)
         : base(infrastructure, credentialsService)
     {
-        _httpClientFactory = httpClientFactory;
+        _connectionResolver = connectionResolver;
+        _client = client;
     }
 
     /// <inheritdoc />
@@ -44,8 +46,14 @@ public sealed class SalesforceConnectionType : OAuthConnectionTypeBase<Salesforc
 
     /// <summary>
     /// Adds a Salesforce-specific check on top of the base token-resolution check: calls the
-    /// org's <c>userinfo</c> endpoint to confirm the token actually works and to report which
-    /// org/user it's connected as. Mirrors <c>Umbraco.Automate.Slack</c>'s <c>auth.test</c> check.
+    /// organization's <c>userinfo</c> endpoint to confirm the token actually works and to report which
+    /// organization/user it's connected as. Mirrors <c>Umbraco.Automate.Slack</c>'s <c>auth.test</c> check.
+    /// Routed through <see cref="ISalesforceClient"/> (rather than a separate hand-rolled HTTP
+    /// call) deliberately — confirmed live that a stale access token is otherwise indistinguishable
+    /// from a genuine 403 here, whereas going through the shared client gets the same
+    /// force-refresh-and-retry-once recovery every action/trigger already benefits from
+    /// (see <see cref="SalesforceClient"/> and <see cref="SalesforceErrorMapper"/>'s handling of
+    /// the identity endpoint's plain-text <c>Bad_OAuth_Token</c> error).
     /// </summary>
     public override async Task<ConnectionValidationResult> ValidateAsync(
         object? settings,
@@ -58,32 +66,17 @@ public sealed class SalesforceConnectionType : OAuthConnectionTypeBase<Salesforc
         }
 
         var credentialsId = ((SalesforceConnectionSettings)settings!).OAuthCredentialsId!.Value;
-        var token = await CredentialsService.GetValidAccessTokenAsync(credentialsId, cancellationToken);
-        var credentials = await CredentialsService.GetCredentialsAsync(credentialsId, cancellationToken);
-
-        if (string.IsNullOrEmpty(credentials?.AccountLabel)
-            || !Uri.TryCreate(credentials.AccountLabel, UriKind.Absolute, out var instanceUrl))
+        var connection = await _connectionResolver.ResolveAsync(credentialsId, cancellationToken);
+        if (connection is null)
         {
             return ConnectionValidationResult.Failure(
-                "No instance URL was captured for this connection. Reconnect the account.");
+                "The Salesforce access token is expired or revoked, or no instance URL was captured for this connection. Reconnect the account.");
         }
 
-        using var client = _httpClientFactory.CreateClient("UmbracoAutomate");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        SalesforceUserInfoResponse? response;
+        SalesforceApiResult result;
         try
         {
-            using var httpResponse = await client.GetAsync(
-                new Uri(instanceUrl, "/services/oauth2/userinfo"), cancellationToken);
-
-            if (!httpResponse.IsSuccessStatusCode)
-            {
-                return ConnectionValidationResult.Failure(
-                    $"Salesforce rejected the access token (HTTP {(int)httpResponse.StatusCode}).");
-            }
-
-            response = await httpResponse.Content.ReadFromJsonAsync<SalesforceUserInfoResponse>(cancellationToken);
+            result = await _client.SendAsync(connection, HttpMethod.Get, "/services/oauth2/userinfo", null, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -96,8 +89,14 @@ public sealed class SalesforceConnectionType : OAuthConnectionTypeBase<Salesforc
                 [ex.Message]);
         }
 
+        if (!result.IsSuccess)
+        {
+            return ConnectionValidationResult.Failure(result.Error!.Message);
+        }
+
+        var response = result.Json is { } json ? JsonSerializer.Deserialize<SalesforceUserInfoResponse>(json) : null;
         var org = response?.OrganizationId ?? "your Salesforce org";
         var user = response?.PreferredUsername is null ? string.Empty : $" as {response.PreferredUsername}";
-        return ConnectionValidationResult.Success($"Connected to {org}{user} ({instanceUrl.Host}).");
+        return ConnectionValidationResult.Success($"Connected to {org}{user} ({connection.InstanceUrl.Host}).");
     }
 }
