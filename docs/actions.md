@@ -82,6 +82,8 @@ Moves an existing Opportunity to a new stage — pairs naturally with Create Opp
 
 **Example:** a Commerce order ships → Update Opportunity Stage to "Closed Won"; an order is refunded or cancelled → "Closed Lost".
 
+**A typo here may not produce an error.** Whether Salesforce rejects an unrecognized Stage value depends on whether your organization has configured Stage as a Restricted Picklist — many orgs haven't, in which case Salesforce silently accepts any text and the Opportunity ends up in a stage that doesn't match any real step in your sales process. Double-check the exact Stage values configured in your org (Setup → Object Manager → Opportunity → Fields → Stage) rather than assuming a mismatch will be caught for you.
+
 ## Add to Campaign
 
 Adds a Contact or Lead to a Salesforce Campaign — the "this person did the marketing thing" action.

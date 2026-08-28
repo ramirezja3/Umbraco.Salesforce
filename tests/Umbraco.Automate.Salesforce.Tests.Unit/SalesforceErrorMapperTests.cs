@@ -41,6 +41,22 @@ public class SalesforceErrorMapperTests
     }
 
     [Fact]
+    public void Map_DuplicatesDetected_CategorizesAsValidationWithClearMessage()
+    {
+        // Salesforce's Duplicate Rules feature (distinct from DUPLICATE_VALUE's unique-field
+        // violations) — confirmed live: creating a Contact with the same email as an existing
+        // Lead triggers this with a bare, UI-oriented message ("Use one of these records?") that
+        // means nothing without context.
+        var body = """[{"message":"Use one of these records?","errorCode":"DUPLICATES_DETECTED"}]""";
+
+        var error = SalesforceErrorMapper.Map(HttpStatusCode.BadRequest, body);
+
+        error.Category.ShouldBe(StepRunErrorCategory.Validation);
+        error.Message.ShouldContain("Duplicate Rules", Case.Insensitive);
+        error.Message.ShouldNotContain("Use one of these records?");
+    }
+
+    [Fact]
     public void Map_OAuthErrorShape_ParsesErrorAndDescription()
     {
         var body = """{"error":"invalid_grant","error_description":"expired access/refresh token"}""";

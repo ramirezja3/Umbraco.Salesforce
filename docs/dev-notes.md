@@ -767,3 +767,102 @@ standalone-vs-monorepo question below) rather than a bespoke one-off.
 - **Legal/compliance review of `docs/security.md`, the NuGet publish itself, the
   standalone-repo-vs-monorepo decision, and any engagement with Umbraco's own contribution
   process** are process/business decisions, not engineering tasks — explicitly not attempted here.
+
+---
+
+## 19. Heavy POC pass: all 6 actions stress-tested live, one real bug found and fixed (2026-08-28)
+
+By direct user instruction, this pass ran the package "to the fullest" — realistic multi-action
+chains, deliberate error conditions, bulk/concurrent usage — against the real org, to surface
+anything a genuine implementer would hit. Two infrastructure detours are recorded here briefly
+because they cost real time, but the useful output is the findings section below.
+
+**Detour 1 — the Automate canvas UI could not be used this pass.** Browser automation against the
+backoffice degraded mid-session (autofill hijacking real saved credentials, then a fully blank
+Automate section with zero console/network errors — every API call it made returned 200, every JS
+module loaded, nothing painted). Root-caused the *first* symptom to a third-party browser
+extension (a password manager) injecting an autofill overlay that Chrome's cross-extension
+isolation blocks this automation channel from dismissing — confirmed by an explicit "Cannot access
+a chrome-extension:// URL of different extension" error. Reconnecting the browser fixed that
+specifically (Content section renders correctly again) but **the Automate section specifically
+stayed blank** even after a from-scratch site, fresh database, cleared browser storage, and a
+reconnected browser — with genuinely nothing to debug (no error anywhere, every request
+succeeded). This is recorded as a real, reproducible environment finding, not chased further per
+the user's explicit instruction to stop treating UI problems as blocking. **A scripted
+Management-API alternative was also attempted and abandoned deliberately, not because it failed
+technically but because it can't work at all here**: this environment redacts OAuth authorization
+codes and tokens in-flight at the network layer as a safety measure, including inside this
+session's own Node scripts talking directly to localhost — confirmed by seeing the literal string
+`[redacted]` (10 characters) come back as the "code" value inside a script that never printed
+anything itself. That's a deliberate guardrail against credential exfiltration, not a bug to route
+around.
+
+**Detour 2 — the workaround: heavy live-org testing at the REST/action level instead of the
+canvas.** Everything below runs through the real `Action` classes via
+`Umbraco.Automate.Testing.ActionTestHarness` (see §17) against the real org — it does not exercise
+real triggers or real canvas control-flow nodes (If/Switch/ForEach/Parallel as actual steps), since
+those specifically require the canvas. New file:
+`tests/Umbraco.Automate.Salesforce.Tests.Integration/LiveSalesforce/LiveSalesforcePocTests.cs`.
+**All 15 live integration tests pass** (9 from before this pass + this file's 6):
+
+- **Full customer journey, all 6 actions chained live**, each step's output bound into a later
+  step exactly as an automation would (`Create Lead` → `Create Opportunity` → `Update Opportunity
+  Stage` → `Create/Update Contact` → `Add to Campaign` → `Log Engagement Activity`), then the
+  whole chain read back and verified.
+- **Bulk (For-Each-style) coverage**: 5 sequential `Create Lead` calls in a loop, confirming no Id
+  collisions and no degradation across repeated live calls.
+- **Parallel-style coverage**: 5 concurrent `Create Lead` calls via `Task.WhenAll` sharing one
+  connection resolver — exercises `SalesforceConnectionResolver`'s real locking behavior under
+  genuine concurrent network I/O, not mocked/sequential unit tests. No collisions, no errors.
+- **Four deliberate error-path probes** against the real org (nonexistent Opportunity Id,
+  nonexistent Campaign Id, a WhoId that's neither a Contact nor a Lead, and the duplicate-rule
+  finding below) — all correctly surface as a `SalesforceApiException` rather than succeeding
+  silently or leaking a raw exception.
+
+**Real finding #1 (fixed): `DUPLICATES_DETECTED` was unhandled by `SalesforceErrorMapper`.**
+Discovered by accident, not designed for: the first draft of the full-journey test used the same
+email for both the step-1 Lead and the step-4 Contact, and Salesforce's standard Duplicate Rules
+(a distinct mechanism from the already-handled `DUPLICATE_VALUE` unique-field error) rejected the
+Contact write with `DUPLICATES_DETECTED: Use one of these records?` — a bare, Lightning-UI-oriented
+message that means nothing without the duplicate-record links the real UI would show alongside it.
+This fell through to the mapper's generic fallback (`StepRunErrorCategory.Unknown`, message
+verbatim). **Fixed**: `DUPLICATES_DETECTED` now categorizes as `Validation` (same bucket as
+`DUPLICATE_VALUE`) and humanizes to an actionable message explaining what Duplicate Rules are and
+what to do about them. This is a genuinely realistic collision, not a contrived one — a real
+"person submits a form as a Lead, later becomes a paying Contact" journey using the same email
+across two separate automations would hit this in any org with Salesforce's default Contact
+Duplicate Rule enabled, and this package had no documented or handled path for it. New unit test
+(`Map_DuplicatesDetected_CategorizesAsValidationWithClearMessage`) and a dedicated live regression
+test (`CreateOrUpdateContact_EmailMatchesExistingLead_RealOrganization_DuplicateRuleBlocksWithClearError`)
+both confirm the fix. The underlying collision itself is not something this package can prevent —
+Salesforce's only suggested resolution (converting the Lead) has no REST-only path, per the
+Convert Lead finding in §0a/§16 — so the fix is entirely about surfacing it clearly, not avoiding
+it.
+
+**Real finding #2 (documented, not a bug): `Opportunity.StageName` isn't a Restricted Picklist in
+this org, and neither this package nor Salesforce validates it.** A test deliberately setting
+`StageName` to `"NotARealStageValue"` was expected to fail — instead Salesforce accepted it and
+created the Opportunity as-is. This means a typo in an automation's Stage input (e.g.
+`"Closed-Won"` instead of `"Closed Won"`) can silently succeed, leaving the Opportunity in a
+nonexistent stage with no error to signal the mistake anywhere — not in this package, not in
+Salesforce. This is standard, expected Salesforce behavior for a non-restricted picklist (not
+every org configures Stage as Restricted), so there's no fix to make here; it's a real,
+live-confirmed limitation worth an implementer knowing about. Test renamed to
+`CreateOpportunity_InvalidStagePicklistValue_RealOrganization_SalesforceAcceptsItSilently` to
+document the actual behavior rather than assert the originally-assumed one.
+
+**Not found: anything wrong with the six named actions' own logic under load or in combination.**
+The chained journey, the bulk loop, and the concurrent calls all behaved exactly as designed — no
+corruption, no Id collisions, no connection-resolver races, no unexpected partial failures. Within
+the surface this pass could actually reach (the REST/action layer, not the canvas), the package
+held up under everything thrown at it.
+
+**Genuinely still untested by this pass, because it requires the canvas specifically:** real
+trigger-driven execution (Content Published, Member Saved, Webhook, Scheduled), and the real
+canvas control-flow nodes (If/Switch/ForEach/Parallel) as actual workflow steps rather than their
+code-level equivalents. Worth a follow-up once the Automate section's rendering issue in this
+environment is understood or a different environment is available.
+
+All test data created during this pass (Leads/Contacts/Opportunities/Campaigns/CampaignMembers/
+Tasks, all tagged with a `POC-` prefix) was queried and deleted from the real org afterward —
+confirmed zero remaining by a final sweep.

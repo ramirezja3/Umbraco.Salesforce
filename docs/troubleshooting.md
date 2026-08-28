@@ -28,7 +28,11 @@ Salesforce requires a field beyond what this action's named settings cover — u
 
 ## `DUPLICATE_VALUE`
 
-Salesforce rejected the write because of a duplicate rule or a unique-field constraint (e.g. re-running **Create/Update Contact** with no Contact Id creates a second Contact for the same person). If an automation might run more than once for the same real-world entity, store the record Id returned by the first run (e.g. on an Umbraco member) and pass it back in on later runs so the action updates instead of creating again — see [docs/actions.md](actions.md).
+Salesforce rejected the write because of a unique-field constraint (e.g. a custom External ID field already has a record with that value). If an automation might run more than once for the same real-world entity, store the record Id returned by the first run (e.g. on an Umbraco member) and pass it back in on later runs so the action updates instead of creating again — see [docs/actions.md](actions.md).
+
+## `DUPLICATES_DETECTED`
+
+A different mechanism than `DUPLICATE_VALUE` above: Salesforce's **Duplicate Rules** (configured in Setup → Duplicate Rules, on by default for Contact/Lead/Account in most orgs) blocked the write because a similar record already exists — most commonly, **Create/Update Contact** creating a Contact whose email matches an existing Lead's email. This package has no way to resolve this automatically (Salesforce's own suggested fix — converting the Lead — has no REST-only path; see [docs/security.md](security.md)). Either update the existing record instead of creating a new one (the same "store the Id from the first run" pattern as `DUPLICATE_VALUE` above), or adjust the organization's Duplicate Rule in Salesforce Setup if the match is a false positive for your use case.
 
 ## "A common grant type/response type combination... couldn't be negotiated automatically" when clicking Authenticate with Salesforce
 

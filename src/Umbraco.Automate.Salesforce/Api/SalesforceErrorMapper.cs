@@ -109,7 +109,7 @@ public static class SalesforceErrorMapper
         "INSUFFICIENT_ACCESS_OR_READONLY" or "INSUFFICIENT_ACCESS" => StepRunErrorCategory.Authentication,
         "INVALID_FIELD" or "REQUIRED_FIELD_MISSING" or "FIELD_CUSTOM_VALIDATION_EXCEPTION"
             or "STRING_TOO_LONG" or "MALFORMED_ID" or "INVALID_TYPE" => StepRunErrorCategory.Validation,
-        "DUPLICATE_VALUE" => StepRunErrorCategory.Validation,
+        "DUPLICATE_VALUE" or "DUPLICATES_DETECTED" => StepRunErrorCategory.Validation,
         "NOT_FOUND" => StepRunErrorCategory.InvalidResponse,
         _ => (int)statusCode switch
         {
@@ -137,6 +137,10 @@ public static class SalesforceErrorMapper
                     $"The connected Salesforce user doesn't have access to perform this operation: {message}",
                 "DUPLICATE_VALUE" =>
                     $"Salesforce rejected this as a duplicate: {message}",
+                "DUPLICATES_DETECTED" =>
+                    "Salesforce's Duplicate Rules blocked this write because a similar record already exists " +
+                    "(e.g. a Contact and a Lead sharing the same email). Either update the existing record instead, " +
+                    "or adjust the organization's Duplicate Rule for this object in Salesforce Setup.",
                 "REQUIRED_FIELD_MISSING" =>
                     $"A required Salesforce field is missing: {message}",
                 "FIELD_CUSTOM_VALIDATION_EXCEPTION" =>
