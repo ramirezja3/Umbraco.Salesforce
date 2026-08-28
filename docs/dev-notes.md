@@ -747,10 +747,14 @@ Credentials Flow.
   org afterward via a throwaway Client Credentials script, so nothing was left behind in the user's
   org from this verification pass.
 
+**Add to Campaign's live coverage — closed (2026-08-28).** The user granted the Client
+Credentials Flow integration user Marketing User access in this org's Salesforce Setup. Re-ran
+`tests/Umbraco.Automate.Salesforce.Tests.Integration` against the live org:
+**7/7 passing** (up from 6/7 in §17) — all 6 named actions' live-org action-level tests now pass,
+plus the original Lead CRUD round-trip test. All 6 actions are now confirmed working end to end
+against a real Salesforce org, not just unit-tested.
+
 **Still open, genuinely blocked on things outside this session's reach:**
-- **Add to Campaign's live coverage** needs someone with access to this org's Salesforce Setup to
-  grant the integration user Campaign create permission (or enable "Marketing User"). Not a code
-  fix.
 - **CI has still never actually executed.** The pipeline definition itself checks out (real
   package resolution confirmed working end-to-end by the install-site test above, `global.json`
   present and matching, `useGlobalJson: true` will resolve correctly) — but wiring it to a real
