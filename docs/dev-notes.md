@@ -754,11 +754,16 @@ Credentials Flow integration user Marketing User access in this org's Salesforce
 plus the original Lead CRUD round-trip test. All 6 actions are now confirmed working end to end
 against a real Salesforce org, not just unit-tested.
 
+**`azure-pipelines.yml` removed (2026-08-28), by direct user instruction.** Checked the real
+`Umbraco.Automate.Slack` product folder in the sibling monorepo checkout directly: it carries no
+pipeline definition of its own — the monorepo's single `azure-pipelines.yml` lives at the repo
+root and drives every product folder through shared `.azure-pipelines/templates/`, a mechanism
+this standalone repo was never actually part of. Having a pipeline file that had never once
+executed was inconsistent with that precedent, not an improvement on it. If CI is wanted later,
+build it against whatever this repo's actual home ends up being (see the still-open
+standalone-vs-monorepo question below) rather than a bespoke one-off.
+
 **Still open, genuinely blocked on things outside this session's reach:**
-- **CI has still never actually executed.** The pipeline definition itself checks out (real
-  package resolution confirmed working end-to-end by the install-site test above, `global.json`
-  present and matching, `useGlobalJson: true` will resolve correctly) — but wiring it to a real
-  Azure DevOps project/service connection requires an ADO account this session has no access to.
 - **Legal/compliance review of `docs/security.md`, the NuGet publish itself, the
   standalone-repo-vs-monorepo decision, and any engagement with Umbraco's own contribution
   process** are process/business decisions, not engineering tasks — explicitly not attempted here.

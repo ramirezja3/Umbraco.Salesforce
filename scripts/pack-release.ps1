@@ -9,9 +9,6 @@
 # package built that way restores fine on this machine and nowhere else.
 # -p:UseProjectReferences=false forces the real PackageReference path — confirmed by inspecting
 # the resulting .nuspec after packing both ways.
-#
-# Mirrors the real monorepo's .azure-pipelines/templates/pack-product.yml pack step
-# (`dotnet pack {product}.slnx --configuration Release --no-build -p:UseProjectReferences=false`).
 
 param(
     [string]$OutputDirectory = "artifacts/nupkg",
