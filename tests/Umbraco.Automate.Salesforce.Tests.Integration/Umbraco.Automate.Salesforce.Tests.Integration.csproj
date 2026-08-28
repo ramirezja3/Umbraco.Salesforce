@@ -22,6 +22,19 @@
         <ProjectReference Include="..\..\src\Umbraco.Automate.Salesforce\Umbraco.Automate.Salesforce.csproj" />
     </ItemGroup>
 
+    <!-- Umbraco.Automate.Testing's ActionTestHarness lets the live-org tests execute real Action
+         classes with a real ConfiguredConnection — same sibling-checkout-with-NuGet-fallback
+         pattern as the src project's own Core/OpenIddict references. -->
+    <PropertyGroup>
+        <UseProjectReferences Condition="'$(UseProjectReferences)' == ''">true</UseProjectReferences>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(UseProjectReferences)' == 'true' AND Exists('..\..\..\Umbraco.Automate\Umbraco.Automate\src\Umbraco.Automate.Testing\Umbraco.Automate.Testing.csproj')">
+        <ProjectReference Include="..\..\..\Umbraco.Automate\Umbraco.Automate\src\Umbraco.Automate.Testing\Umbraco.Automate.Testing.csproj" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(UseProjectReferences)' != 'true' OR !Exists('..\..\..\Umbraco.Automate\Umbraco.Automate\src\Umbraco.Automate.Testing\Umbraco.Automate.Testing.csproj')">
+        <PackageReference Include="Umbraco.Automate.Testing" />
+    </ItemGroup>
+
     <ItemGroup>
         <Using Include="Xunit" />
         <Using Include="Shouldly" />

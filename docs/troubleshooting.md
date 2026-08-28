@@ -59,6 +59,17 @@ Fix by setting, in your hosting configuration:
 
 This is an Umbraco Automate (core) configuration requirement, not something this package adds — Automate needs its own connection string, separate from (or, via `UseNamedConnectionString`, shared with) the main Umbraco CMS database. Add an `umbracoAutomateDbDSN` entry under `ConnectionStrings`, or set `Umbraco:Automate:UseNamedConnectionString` to the name of an existing connection string (e.g. `umbracoDbDSN`) to reuse it. See Umbraco Automate's own installation documentation.
 
+## No Salesforce actions appear when adding a step to an automation
+
+This is expected if the workspace the automation belongs to has no Salesforce connection in its
+**Allowed Connections** — Umbraco Automate hides an action from the step picker entirely (not
+greyed out — absent) unless the workspace allows at least one connection of that action's required
+connection type. Go to **Automation → Workspaces → (your workspace) → Allowed Connections** and
+add your Salesforce (or Salesforce Sandbox) connection — it doesn't need to be authenticated yet,
+just present — and the "Salesforce" group of all 6 actions will appear in the step picker. This is
+a general Umbraco Automate platform behavior, not something specific to this package, but it's an
+easy trap to read as "the package didn't install correctly."
+
 ## Live-org integration tests are skipped / no-op in CI
 
 This is expected and correct — the opt-in live-organization integration tests (`tests/Umbraco.Automate.Salesforce.Tests.Integration`) only run when a local `.env` file with real Connected App credentials is present. They silently no-op otherwise so CI and other developers' machines are never affected by their absence. See that test project's `LiveSalesforceCredentials` for the exact file it looks for.

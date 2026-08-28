@@ -636,3 +636,94 @@ Opportunity) for parity with Create Lead, and dropped on the three narrow, singl
 (Update Opportunity Stage, Add to Campaign, Log Engagement Activity) where it added no real value.
 
 Build green, 59/59 unit tests + 2/2 integration tests pass after this pass.
+
+---
+
+## 17. Post-v2 release verification (2026-08-28)
+
+With v2 committed and pushed, this pass worked through the release-readiness gaps identified
+right after the redesign: cleaned up stale bug-history comments and the superseded
+`SALESFORCE-PACKAGE-BUGS.md` (separate commit), then verified the things that can only be
+verified by actually running them, rather than re-reading code.
+
+**Live-org action coverage added.** `LiveSalesforceCrudTests` only ever round-tripped a raw Lead
+via `SalesforceClient` directly — none of the 6 named v2 actions had been exercised against a
+real org. Added `LiveSalesforceActionTests.cs`, which executes the actual Action classes (not
+just their underlying REST shapes) via Core's own `Umbraco.Automate.Testing.ActionTestHarness<T>`
+— a real `ConfiguredConnection`, real DI, wired to `LiveSalesforceFixture`'s real
+`ISalesforceClient`/token. This is a new test-only dependency for this package (`Directory.Packages.props`
+gained `Umbraco.Automate.Testing`, pinned to the same `[17.2.0, 17.999.999)` range as Core; the
+integration test csproj got the same sibling-checkout-with-NuGet-fallback conditional reference
+the src project already uses for Core/OpenIddict). `ConfiguredConnection`'s constructor is
+`internal` and this package's test projects aren't in Core's `InternalsVisibleTo` allowlist, so
+this harness — not a hand-rolled one — is the only way to construct a real one from outside the
+monorepo; worth remembering next time a provider package needs to test through real Action
+classes rather than mocking `ISalesforceConnectionResolver`/`ISalesforceClient` entirely.
+
+Results against the real Developer Edition org: **5 of 6 actions confirmed working live**
+(Create Opportunity, Update Opportunity Stage, Create/Update Contact — both the create and the
+update-by-Id path — and Log Engagement Activity all created/updated the expected record with the
+expected field values, then cleaned up after themselves). **Add to Campaign failed** with
+`CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY: entity type cannot be inserted: Campaign` — this is the
+Client Credentials Flow integration user lacking Campaign create permission in this specific org
+(needs the "Marketing User" flag or a Campaign object permission grant in Salesforce Setup), not
+a defect in `AddToCampaignAction` — its unit tests already cover the field-mapping/validation
+logic, and the live test's own assertions (CampaignMember linking to the right Campaign/Lead) are
+correct; they just couldn't run to completion in this org. The test is left in place (it no-ops
+without credentials like every other live test, so it can't break anyone else's run) so it starts
+passing the moment that org's integration user has Campaign permission. Left as an open item —
+see the note at the end of this section.
+
+**Packaged install re-verified against the actual v2 shape**, not the pre-restructure layout
+`docs/dev-notes.md` §12 originally validated. `scripts/pack-release.ps1` still packs cleanly
+(`Umbraco.Automate.Salesforce.0.1.0.nupkg` — version unchanged, this package has still never been
+tagged/released) and `scripts/install-package-test-site.ps1` still installs it into a genuinely
+fresh `dotnet new umbraco` site via real NuGet packages (`Umbraco.Automate` from nuget.org,
+`Umbraco.Automate.Salesforce` from the local pack output) with zero project references and zero
+code changes. Both scripts needed `powershell.exe -ExecutionPolicy Bypass` to run at all on this
+machine (the default `Restricted`/`AllSigned` policy blocks unsigned local scripts entirely) —
+worth noting in case a CI agent's default policy does the same; the real Azure DevOps `pwsh` task
+in `azure-pipelines.yml` may or may not need an explicit bypass depending on the agent's default,
+untested since the pipeline has never actually run (see below).
+
+**Backoffice canvas confirmed live, structurally, in the real installed site above** (browser
+automation against `https://localhost:44399/umbraco`, unattended-install admin credentials — not
+just curling for a 200): both `Salesforce`/`Salesforce (Sandbox)` connection types appear in the
+Connections "Create" picker with correct descriptions; a real (unauthenticated) `Salesforce`
+connection was created and saved; and once that connection was added to a workspace's **Allowed
+Connections**, all 6 actions (Add to Campaign, Create Lead, Create Opportunity, Create/Update
+Contact, Log Engagement Activity, Update Opportunity Stage) appeared together under a single
+"Salesforce" group in the step picker, with zero Salesforce entries in the trigger picker.
+
+**Genuinely new finding, not previously documented anywhere in this file: an action's
+`ConnectionTypeAlias` gates whether it appears in the step picker at all, based on the
+*workspace's* `AllowedConnections` — not just which connection a step ultimately binds to.** The
+first attempt at this check (a fresh workspace with zero allowed connections) showed **no
+Salesforce group whatsoever** in the action picker — not greyed out, not disabled, entirely
+absent — which looks exactly like "the package didn't install its actions" to anyone testing
+without realizing this platform behavior exists. Confirmed it's the `AllowedConnections` gate
+specifically (not, e.g., requiring the connection to be authenticated) by adding an
+unauthenticated Salesforce connection to the workspace's `AllowedConnections` and watching the
+group appear. **Doc implication:** added to `docs/troubleshooting.md` — this is exactly the kind
+of platform (not package) behavior that looks like a bug to an implementer, per this file's own
+recurring pattern for documenting those.
+
+**Still open, genuinely blocked on things outside this session's reach:**
+- **Add to Campaign's live coverage** needs someone with access to this org's Salesforce Setup to
+  grant the integration user Campaign create permission (or enable "Marketing User"). Not a code
+  fix.
+- **The interactive OAuth popup flow (the actual `authorization_code` grant against a real
+  Salesforce login) was not re-verified this pass** — only that the connection type renders and an
+  unauthenticated connection can be created/saved. Completing the real OAuth handshake needs a
+  human with real Connected App credentials and a real Salesforce login (username/password/MFA),
+  which is not something to script or hand credentials for. The package-test site above is booted
+  and ready for whoever does this — see its own printed instructions (Connected App Client
+  ID/Secret still need to be filled in from a real Connected App before "Authenticate with
+  Salesforce" will do anything).
+- **CI has still never actually executed.** The pipeline definition itself checks out (real
+  package resolution confirmed working end-to-end by the install-site test above, `global.json`
+  present and matching, `useGlobalJson: true` will resolve correctly) — but wiring it to a real
+  Azure DevOps project/service connection requires an ADO account this session has no access to.
+- **Legal/compliance review of `docs/security.md`, the NuGet publish itself, the
+  standalone-repo-vs-monorepo decision, and any engagement with Umbraco's own contribution
+  process** are process/business decisions, not engineering tasks — explicitly not attempted here.
