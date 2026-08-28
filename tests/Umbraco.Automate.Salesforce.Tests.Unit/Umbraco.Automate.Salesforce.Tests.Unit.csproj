@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Umbraco.Automate.Salesforce.Core\Umbraco.Automate.Salesforce.Core.csproj" />
+        <ProjectReference Include="..\..\src\Umbraco.Automate.Salesforce\Umbraco.Automate.Salesforce.csproj" />
     </ItemGroup>
 
     <ItemGroup>

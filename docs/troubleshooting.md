@@ -24,11 +24,11 @@ The Salesforce user the connection is authenticated as doesn't have permission t
 
 ## `REQUIRED_FIELD_MISSING`
 
-The action's field map is missing a field Salesforce requires for that object (e.g. Lead requires `LastName` and `Company`). The error message names which field(s). For Create Lead specifically, `Last Name` and `Company` are already required in the action's own configuration; for Create Record/Update Record/Upsert Record, check the object's page layout or Object Manager in Salesforce Setup for what else it requires.
+Salesforce requires a field beyond what this action's named settings cover — usually a custom required field or validation rule your org added (e.g. an org that requires `AccountId` on Opportunity or Contact via a validation rule, even though Salesforce's platform doesn't require it by default). The error message names which field(s). Add the missing value via the action's **Additional Fields** JSON input where available (Create Lead, Create/Update Contact, Create Opportunity); actions without an Additional Fields input (Update Opportunity Stage, Add to Campaign, Log Engagement Activity) can't supply extra fields — check Object Manager in Salesforce Setup for what else that object requires.
 
 ## `DUPLICATE_VALUE`
 
-Salesforce rejected the write because of a duplicate rule or a unique-field constraint. If you're deliberately trying to avoid duplicates on repeated runs, use Upsert Record with an External ID field instead of Create Record — see [docs/actions.md](actions.md).
+Salesforce rejected the write because of a duplicate rule or a unique-field constraint (e.g. re-running **Create/Update Contact** with no Contact Id creates a second Contact for the same person). If an automation might run more than once for the same real-world entity, store the record Id returned by the first run (e.g. on an Umbraco member) and pass it back in on later runs so the action updates instead of creating again — see [docs/actions.md](actions.md).
 
 ## "A common grant type/response type combination... couldn't be negotiated automatically" when clicking Authenticate with Salesforce
 
@@ -58,13 +58,6 @@ Fix by setting, in your hosting configuration:
 ## Site fails to start with "Umbraco Automate requires a database connection string named 'umbracoAutomateDbDSN'"
 
 This is an Umbraco Automate (core) configuration requirement, not something this package adds — Automate needs its own connection string, separate from (or, via `UseNamedConnectionString`, shared with) the main Umbraco CMS database. Add an `umbracoAutomateDbDSN` entry under `ConnectionStrings`, or set `Umbraco:Automate:UseNamedConnectionString` to the name of an existing connection string (e.g. `umbracoDbDSN`) to reuse it. See Umbraco Automate's own installation documentation.
-
-## Opportunity Stage Changed never fires
-
-- Confirm the automation has actually been published, not just saved as a draft — a polling trigger only starts checking once its automation is published.
-- Remember the very first poll after publishing only establishes a baseline; it will not fire for a stage change that already happened before that first poll.
-- Confirm the workspace the automation lives in has a Salesforce connection available to it, and that connection's "Test connection" succeeds.
-- Check the server log for a warning from the trigger naming the failure reason — a typo'd Target Stage value won't error, it will just never match, which looks identical to "nothing happened" from the outside.
 
 ## Live-org integration tests are skipped / no-op in CI
 

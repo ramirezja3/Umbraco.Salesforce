@@ -79,11 +79,10 @@ public class SalesforceErrorMapperTests
     [Fact]
     public void Map_BadOAuthTokenPlainTextBody_MapsOntoInvalidSessionId()
     {
-        // Regression: Salesforce's identity endpoints (/services/oauth2/userinfo, /id/...)
-        // return a bare plain-text token on failure, not JSON — confirmed live calling
-        // userinfo with a stale access token. Must map onto the same INVALID_SESSION_ID code
+        // Salesforce's identity endpoints (/services/oauth2/userinfo, /id/...) return a bare
+        // plain-text token on failure, not JSON. Must map onto the same INVALID_SESSION_ID code
         // the REST Data API's JSON shape uses, so SalesforceClient's force-refresh-and-retry
-        // triggers for this shape too, not just the JSON one (docs/dev-notes.md §0a).
+        // triggers for this shape too, not just the JSON one.
         var error = SalesforceErrorMapper.Map(HttpStatusCode.Forbidden, "Bad_OAuth_Token");
 
         error.ErrorCode.ShouldBe("INVALID_SESSION_ID");

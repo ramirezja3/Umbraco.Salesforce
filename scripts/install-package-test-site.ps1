@@ -1,4 +1,4 @@
-# Creates a fresh Umbraco 17 site and installs Umbraco.Automate + Umbraco.Automate.Salesforce
+﻿# Creates a fresh Umbraco 17 site and installs Umbraco.Automate + Umbraco.Automate.Salesforce
 # from the locally packed .nupkg files (see scripts/pack-release.ps1) plus nuget.org for
 # Umbraco.Automate's own dependencies. This is the real "can an implementer actually install
 # this from NuGet" check — everything else in this repo up to now (the demo site under
@@ -26,10 +26,9 @@ if (-not $SkipPack) {
 }
 
 $nupkg = Get-ChildItem $LocalFeedPath -Filter "Umbraco.Automate.Salesforce.*.nupkg" |
-    Where-Object { $_.Name -notmatch "\.Core\.|\.Persistence\." } |
     Select-Object -First 1
 if (-not $nupkg) {
-    Write-Host "ERROR: No Umbraco.Automate.Salesforce meta-package found in $LocalFeedPath — run pack-release.ps1 first." -ForegroundColor Red
+    Write-Host "ERROR: No Umbraco.Automate.Salesforce package found in $LocalFeedPath — run pack-release.ps1 first." -ForegroundColor Red
     exit 1
 }
 if ($nupkg.Name -notmatch "^Umbraco\.Automate\.Salesforce\.(.+)\.nupkg$") {
@@ -91,6 +90,10 @@ $devSettings = Get-Content $devSettingsPath -Raw | ConvertFrom-Json
 $devSettings.Umbraco.CMS | Add-Member -NotePropertyName "Global" -NotePropertyValue ([PSCustomObject]@{ DisableElectionForSingleServer = $true }) -Force
 $devSettings.Umbraco.CMS | Add-Member -NotePropertyName "WebRouting" -NotePropertyValue ([PSCustomObject]@{ UmbracoApplicationUrl = "https://localhost:44399/" }) -Force
 $devSettings.Umbraco | Add-Member -NotePropertyName "Automate" -NotePropertyValue ([PSCustomObject]@{
+    # Automate requires its own connection string — without this, the site fails to start with
+    # "Umbraco Automate requires a database connection string named 'umbracoAutomateDbDSN'".
+    # Sharing the CMS's own SQLite database is the simplest option for a local test site.
+    UseNamedConnectionString = "umbracoDbDSN"
     Providers = [PSCustomObject]@{ Salesforce = [PSCustomObject]@{ ClientId = "REPLACE_ME"; ClientSecret = "REPLACE_ME" } }
     Salesforce = [PSCustomObject]@{ ApiVersion = "v61.0" }
 }) -Force
@@ -102,7 +105,7 @@ Write-Host "Site location: $sitePath" -ForegroundColor Gray
 Write-Host "  1. Add real Salesforce Connected App ClientId/ClientSecret to appsettings.Development.json" -ForegroundColor Yellow
 Write-Host "  2. cd $sitePath && dotnet run --urls https://localhost:44399" -ForegroundColor Gray
 Write-Host "  3. Open https://localhost:44399/umbraco (admin@example.com / password1234)" -ForegroundColor Gray
-Write-Host "  4. Confirm 'Running N pending Automate migrations' / 'Automate migrations completed successfully' in the log" -ForegroundColor Gray
-Write-Host "  5. Automation > Connections > Create — confirm Salesforce / Salesforce (Sandbox) both appear" -ForegroundColor Gray
+Write-Host "  4. Automation > Connections > Create — confirm Salesforce / Salesforce (Sandbox) both appear" -ForegroundColor Gray
+Write-Host "  5. Automation > (any automation) > add a step — confirm all 6 Salesforce actions appear, zero triggers" -ForegroundColor Gray
 
 Pop-Location

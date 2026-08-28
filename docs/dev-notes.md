@@ -452,4 +452,187 @@ Updated 2026-08-19 — most items below are now genuinely verified (not assumed)
 2. Check `docs/engineering-spec.md` in the monorepo (in the clone) for the platform contract you're implementing against.
 3. Check current Salesforce documentation for anything API-version-specific (OAuth scopes, REST endpoints, CDC/Pub-Sub setup) — Salesforce API versions and best-practice guidance change multiple times a year, so verify current before hardcoding version numbers or endpoint shapes.
 4. If the real source and this brief disagree, the real source wins — but **update §0a with the correction** before proceeding, so the next session doesn't rediscover the same fact from scratch.
+
+---
+
+## 14. v2 — Actions removed entirely, QA findings triaged (2026-08-26)
+
+A round of manual testing against a real Salesforce Developer Edition org (Forms → Create Lead
+worked end to end; the other triggers were separately validated by another session) produced
+`SALESFORCE-PACKAGE-BUGS.md`, 12 findings against v0.1.0. Rather than keep growing the action
+set, the decision this pass was to **remove all Actions entirely** — this package now ships only
+the Opportunity Stage Changed trigger. Everything under §6/§7 above describing the seven actions
+(Create Lead, Create/Update/Upsert/Get/Delete Record, Query Records) is superseded by this —
+left in place above as historical record of what v0.1.0 shipped, not as current scope.
+
+Concretely, this pass:
+- Deleted `src/Umbraco.Automate.Salesforce.Core/Actions/` in full (22 files), plus
+  `SalesforceSoqlEscaper.cs` and `SalesforceFieldListHelper.cs` (confirmed zero remaining call
+  sites once Actions are gone — the surviving trigger's SOQL is built entirely from internal,
+  fixed values, never a bound/free-text value, so there is no injection surface left to escape).
+  QA findings #1–3 (SOQL escaping, unguarded `int.Parse` on `LIMIT`, raw JSON parse errors) all
+  lived in that deleted code — no fix needed, the surface is gone. Finding #12 (unclear error for
+  a bad object name) was about a free-text object-name field only Actions exposed — also moot.
+- **Sandbox stays.** It was on the same chopping block initially, but there's no correctness or
+  testing benefit to cutting it in this pass — it's just a second OpenIddict registration +
+  connection type, untouched by any of this work. Left for a future pass if still wanted.
+- Fixed findings #4 (OAuth `Scopes` config was documented but never read — now bound per
+  provider via `SalesforceComposer.ResolveScopes`), #7 (`MaxRetryAttempts` was off-by-one from
+  its own doc comment), #8 (added `MaxRetryDelay` to cap exponential backoff), #9 (a failed
+  forced token refresh was cached for 5 seconds, propagating one transient failure to every
+  other concurrent caller — now only successful refreshes are cached), #10 (one genuinely silent
+  poll-skip branch in `SalesforcePollingBackgroundJob` now logs a warning), and #11 (network-level
+  exceptions in `SalesforceClient.SendAsync` — DNS failure, connection refused, TLS error — now
+  map to a clear `SalesforceApiError` instead of propagating as a raw .NET exception).
+- Finding #5 (polling watermark can skip same-timestamp records at a poll's `LIMIT` boundary) got
+  a deliberately lighter fix than the QA doc's suggested one: instead of a compound cursor
+  (timestamp + record Id, which would need a new persisted column and an EF migration in both
+  database providers), `ComputeNextPollWatermark` now backs the capped watermark up by one tick,
+  so the next poll's `>` comparison re-includes the tied group. Safe with no schema change because
+  the trigger already has the guarantees needed: a record whose stage hasn't changed is a silent
+  no-op, and any genuine change carries a `TriggerEvent.IdempotencyKey` keyed on
+  `recordId:LastModifiedDate`, so a change already dispatched once can't fire twice.
+- Finding #6 (no way to target a specific connection when a workspace has more than one
+  Salesforce connection) was left as accepted, documented behavior (existing warn-and-pick-first)
+  rather than built out as a new connection-picker settings field — nobody has actually hit this
+  scenario yet, and it's speculative multi-org UI for a single-trigger package.
+
+The general principle this triage established, worth applying to any future QA-list pass on this
+package: question whether a finding's literal suggested fix is proportionate to a real use case
+before implementing it. A rare edge case with an existing "good enough, documented" behavior
+doesn't automatically earn a schema migration; a stated intent to remove something eventually
+doesn't mean removing it in the current pass, if removing it isn't actually required for the
+work at hand.
 5. If something here is ambiguous or missing (e.g. exact persistence project naming, exact attribute usage), don't guess silently — note the assumption made and where in the source it was inferred from, so a human reviewer can confirm. Add it to §0a as a pending/unconfirmed item if it's significant enough to affect other sections.
+
+---
+
+## 15. v2 reversal — Actions restored, the trigger removed instead (2026-08-26, same day as §14)
+
+§14 above was based on a miscommunicated instruction — the corrected intent is the exact
+opposite: **actions are this package's selling point; it should ship no triggers at all.**
+Nothing from §14's pass (nor the cleanup pass after it) had been committed, so restoring the
+deleted Actions code needed no external reference — `git checkout HEAD -- <path>` recovered it
+directly from local history, since `HEAD` still had the original v0.1.0 codebase throughout.
+
+This pass:
+- Restored `Actions/` in full (22 files), `SalesforceSoqlEscaper.cs`, `SalesforceFieldListHelper.cs`,
+  `SalesforceApiException.cs` (wrongly deleted as "orphaned" during the §14-adjacent cleanup pass
+  — it's actually used by `SalesforceActionSupport.cs` once Actions exist), `docs/actions.md`, and
+  the five action-only test files.
+- Fixed, on the restored code, the QA findings that are actually mechanically fixable: **#2**
+  (`QueryRecordsAction.ApplyRowLimit` now uses `int.TryParse` and throws a catchable
+  `FormatException` instead of leaking a raw `OverflowException`), **#3**
+  (`SalesforceActionSupport.TryParseFields`'s JSON error now names the expected shape and echoes
+  the bad input instead of surfacing the raw parser message), and **#12** (`Failed(result,
+  objectApiName)` now names the configured object API name on a `NOT_FOUND`, across
+  Create/Update/Upsert/Delete Record). **#1** (SOQL injection via unescaped bound values in Query
+  Records) is *not* fully fixable — the action only ever sees the SOQL text after Automate's
+  `${ }` substitution already ran, so there's no hook left to escape a value that's already been
+  spliced into flat text. This is the same structural limitation v1's `docs/security.md` already
+  documented; restoring that documented-but-imperfect state is not a regression.
+- **Deleted the trigger and its entire persistence layer** — not just `Triggers/`, but
+  `Persistence/`, both `Umbraco.Automate.Salesforce.Persistence.SqlServer`/`.Sqlite` projects, and
+  the composer's `AddUmbracoDbContext`/migration-notification wiring. The reasoning chain: the
+  *only* reason this package was ever split into 4 projects (meta-package + Core + two persistence
+  providers) was the trigger's one EF Core checkpoint table. Once the trigger's gone, actions need
+  none of it — they call the REST API directly and keep no state — so the 4-project split's own
+  stated justification (§0a, "unlike Slack, this package needs its own persistence") no longer
+  holds.
+- **Collapsed the solution from 4 projects to 1**, matching `Umbraco.Automate.Slack`'s shape
+  exactly: merged the old `Umbraco.Automate.Salesforce.Core` project's contents (its C# namespaces
+  were already `Umbraco.Automate.Salesforce.*`, never `.Core.*`, so this was a pure file move, zero
+  code changes) into `src/Umbraco.Automate.Salesforce/`, deleted the old thin meta-package
+  `.csproj` and both persistence projects, dropped the now-unused `Umbraco.Cms.Persistence.EFCore`
+  family and `Microsoft.EntityFrameworkCore.Design`/`Microsoft.Data.Sqlite` pins from
+  `Directory.Packages.props`, and updated `Umbraco.Automate.Salesforce.slnx`, both test projects'
+  `ProjectReference`s, `scripts/pack-release.ps1`, `scripts/install-package-test-site.ps1`, and
+  `azure-pipelines.yml` accordingly.
+- Sandbox stays untouched throughout (unaffected by any of this — it was never on the table this
+  time).
+- Build green, 67/67 unit tests + 2/2 integration tests pass after the full sequence above.
+
+**Note for whoever reads this next:** during this pass, `tests/.../Umbraco.Automate.Salesforce.Tests.Unit.csproj`,
+`tests/.../Umbraco.Automate.Salesforce.Tests.Integration.csproj`, and this repo's own `.slnx` were
+found already missing their `<ProjectReference>`/`<Project Path>` entries to the old Core project
+— from *before* this pass started, cause undetermined (not a deliberate edit by this pass or the
+one before it). Re-added correctly pointing at the merged project as part of this work; if project
+references go missing again after a `dotnet build`/`dotnet test` run, that's worth investigating
+as a real tooling issue rather than assuming it's always a stray manual edit.
+
+---
+
+## 16. Generic Record actions replaced with 6 named, deterministic ones (2026-08-26, same day as §15)
+
+The generic action set (Create/Update/Upsert/Get/Delete Record + Query Records SOQL) required a
+non-dev automation author to know a Salesforce object API name, and often raw field names or
+SOQL — a dev-shaped design. `CreateLeadAction` was always the exception: named fields, a fixed
+target object, no guessing. This pass generalizes that pattern to 5 more actions chosen around
+what a Commerce/Engage site actually needs to hand to Salesforce, and deletes the 6 generic
+actions entirely. Final set: **Create Lead** (unchanged), **Create/Update Contact**, **Create
+Opportunity**, **Update Opportunity Stage**, **Add to Campaign**, **Log Engagement Activity**.
+
+**Convert Lead was considered and dropped — re-confirms an existing finding, doesn't overturn
+it.** A fresh round of research this pass (WebSearch/WebFetch against developer.salesforce.com,
+independent of the original investigation referenced elsewhere in this file) again found no
+documented REST standard invocable action for Lead conversion — the REST API Developer Guide's
+own site search returns nothing for "convertLead," `GET /services/data/vXX.X/actions/standard`'s
+documented example list doesn't include it, and third-party sources agree the only paths are the
+legacy SOAP `convertLead()` call or a custom Apex `@InvocableMethod` deployed into the target
+org's own Setup — either way violating this package's REST-only / zero-implementer-code
+non-negotiables. User confirmed: drop it, ship the other 6, rather than take a SOAP exception or
+require implementer-side Apex.
+
+**Field requirements below are verified against Salesforce's Summer '26 / API v67.0 object
+reference docs, not assumed** (this matters — see the "always verify current API specifics"
+guidance elsewhere in this file):
+- **Opportunity**: only `Name`, `StageName`, `CloseDate` are platform-required on create.
+  `AccountId` is confirmed **Nillable** (not platform-required) — orgs that require it do so via
+  their own validation rule, not core metadata. `CreateOpportunityAction` reflects this: `AccountId`
+  is an optional input, documented as "some organizations require this."
+- **CampaignMember**: requires `CampaignId` plus exactly one of `ContactId`/`LeadId` (both
+  Nillable at the schema level; the platform enforces "exactly one" as a business rule, not a
+  schema constraint — confirmed via the object reference's description text, which says
+  "Required" on both fields despite the Nillable flag, the classic mutually-exclusive-required
+  pattern). `Status` is confirmed Nillable — omitting it lets Salesforce fall back to whatever
+  member status the Campaign's own Setup configuration marks as default, so no hardcoded default
+  was needed in `AddToCampaignAction`. Note: a newer org setting ("Accounts as Campaign Members")
+  can make `AccountId` a third valid option here — not implemented, since Contact/Lead covers the
+  stated Commerce/Engage use cases and adding it would reintroduce a three-way exclusivity check
+  for a scenario nobody asked for.
+- **Task** (`LogEngagementActivityAction`): `WhoId` confirmed genuinely polymorphic across
+  Contact and Lead (one field, not two, unlike CampaignMember). `Subject` is confirmed **not**
+  platform-required (no "Required" prefix in the object reference, and Nillable) — this action
+  requires it anyway as its own product decision, since a blank logged activity is bad UX
+  regardless of what the raw API permits. `Status` is required at the schema level but
+  "Defaulted on create" (defaults to `Not Started` if omitted) — this action always sends
+  `"Completed"` explicitly rather than relying on that default, since a *logged* activity should
+  never sit as `Not Started`.
+- **Contact**: `LastName` is the only platform-required field; `AccountId` is optional (same
+  Nillable pattern as Opportunity). `CreateOrUpdateContactAction` deliberately does **not**
+  attempt an implicit "find existing Contact by email" lookup — Salesforce's standard `Email`
+  field isn't (and can't be made, since only custom fields support the External ID checkbox) an
+  External ID, so there's no REST-native upsert-by-email path, and this package chose not to run
+  an internal SOQL lookup to fake one. Create vs. update is explicit via an optional `ContactId`
+  setting instead — store the Id an automation's first run returns, bind it back in on later runs.
+
+**Cleanup that followed from the 6 actions going away:** `SalesforceFieldListHelper` (only used
+by the deleted `GetRecordAction`) and `SalesforceSoqlEscaper` (already zero real call sites, its
+only justification — `QueryRecordsAction`'s free-text SOQL field — gone too) were deleted, along
+with their tests. `SalesforceApiOptions.MaxQueryRows` (and its schema mirror) went with
+`QueryRecordsAction`, its only reader. `SalesforceActionSupport.Failed`'s `objectApiName`
+parameter (added in §15's action-restore pass for the free-text-object-name Record actions'
+NOT_FOUND messages) was simplified back to `Failed(result)` with no parameter, since every
+surviving/new action targets a fixed, known object — matching `CreateLeadAction`'s original call
+shape, which never needed it.
+
+Every new action follows `CreateLeadAction.cs`'s exact shape (same 4-parameter constructor,
+same validate → `TryGetCredentialsId` → `TryParseFields` (where an `AdditionalFields` escape
+hatch exists) → `ResolveContextAsync` → `SendAsync` → `Failed`/`Success` flow) — this was a
+deliberate constraint, not just convenience: the whole point of this redesign was consistency
+with the one action already judged "perfect," not a fresh design per action. `AdditionalFields`
+was kept on the two actions with substantial field sets (Create/Update Contact, Create
+Opportunity) for parity with Create Lead, and dropped on the three narrow, single-purpose actions
+(Update Opportunity Stage, Add to Campaign, Log Engagement Activity) where it added no real value.
+
+Build green, 59/59 unit tests + 2/2 integration tests pass after this pass.

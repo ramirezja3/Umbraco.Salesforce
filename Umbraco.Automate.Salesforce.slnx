@@ -1,9 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Umbraco.Automate.Salesforce/Umbraco.Automate.Salesforce.csproj" />
-    <Project Path="src/Umbraco.Automate.Salesforce.Core/Umbraco.Automate.Salesforce.Core.csproj" />
-    <Project Path="src/Umbraco.Automate.Salesforce.Persistence.SqlServer/Umbraco.Automate.Salesforce.Persistence.SqlServer.csproj" />
-    <Project Path="src/Umbraco.Automate.Salesforce.Persistence.Sqlite/Umbraco.Automate.Salesforce.Persistence.Sqlite.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/Umbraco.Automate.Salesforce.Tests.Unit/Umbraco.Automate.Salesforce.Tests.Unit.csproj" />

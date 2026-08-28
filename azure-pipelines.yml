@@ -68,7 +68,7 @@ stages:
       condition: succeeded()
       jobs:
           - job: Pack
-            displayName: Pack all 4 projects
+            displayName: Pack NuGet package
             steps:
                 - task: UseDotNet@2
                   displayName: Install .NET SDK
@@ -77,7 +77,7 @@ stages:
                       useGlobalJson: true
 
                 - pwsh: ./scripts/pack-release.ps1 -OutputDirectory "$(Build.ArtifactStagingDirectory)/nupkg"
-                  displayName: Pack (Core, Persistence.SqlServer, Persistence.Sqlite, meta-package)
+                  displayName: Pack Umbraco.Automate.Salesforce
 
                 - task: PublishBuildArtifacts@1
                   displayName: Publish nupkg artifacts

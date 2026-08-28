@@ -7,8 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Data.Sqlite" />
-        <PackageReference Include="Umbraco.Cms.Persistence.EFCore.Sqlite" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="Moq" />
         <PackageReference Include="Shouldly" />
@@ -21,10 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Umbraco.Automate.Salesforce.Core\Umbraco.Automate.Salesforce.Core.csproj" />
-        <!-- Referenced so the SQLite migrations assembly is present at test runtime —
-             EF Core's MigrationsAssembly loads it by name, it doesn't just need the types. -->
-        <ProjectReference Include="..\..\src\Umbraco.Automate.Salesforce.Persistence.Sqlite\Umbraco.Automate.Salesforce.Persistence.Sqlite.csproj" />
+        <ProjectReference Include="..\..\src\Umbraco.Automate.Salesforce\Umbraco.Automate.Salesforce.csproj" />
     </ItemGroup>
 
     <ItemGroup>

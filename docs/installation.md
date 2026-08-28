@@ -31,7 +31,7 @@ If you're connecting to a **sandbox** org instead of production, everything abov
 dotnet add package Umbraco.Automate.Salesforce
 ```
 
-This pulls in `Umbraco.Automate.OpenIddict` automatically if it isn't already installed. No code changes are required — the connection type, actions, and triggers register themselves via attributes when the site starts.
+This pulls in `Umbraco.Automate.OpenIddict` automatically if it isn't already installed. No code changes are required — the connection types and actions register themselves via attributes when the site starts.
 
 ## Step 3: Configure the Connected App credentials
 
@@ -61,13 +61,13 @@ Add the Client ID and Client Secret from Step 1 to your configuration (`appsetti
 
 ## Step 4: Restart and connect
 
-1. Restart the site. On first boot, the package's database migrations run automatically — no manual SQL required. You'll see log lines like `Running N pending Automate migrations` / `Automate migrations completed successfully`.
+1. Restart the site.
 2. In the backoffice, go to **Automation → Connections → Create**.
 3. Choose **Salesforce** (production) or **Salesforce (Sandbox)**.
 4. Click **Authenticate with Salesforce** — you'll be redirected to Salesforce's own login/consent screen. Log in as a Salesforce user with API access and authorize the app.
 5. Back in the backoffice, click **Test connection** — you should see a success message naming your Salesforce organization ID and the connected username.
 
-That's the entire setup. You can now build automations using the Salesforce triggers and actions — see [docs/triggers.md](triggers.md) and [docs/actions.md](actions.md).
+That's the entire setup. You can now build automations using the Salesforce actions — see [docs/actions.md](actions.md).
 
 ## Multiple connections / multiple orgs
 
@@ -75,7 +75,7 @@ You can create more than one Salesforce connection (e.g. a production org and a 
 
 ## Adding a scope later
 
-If a future action or your own automation needs a Salesforce OAuth scope you haven't granted yet:
+If your automation needs a Salesforce OAuth scope you haven't granted yet:
 
 1. Add the scope to the Connected App in Salesforce.
 2. Add it to the `Scopes`/OAuth configuration if you've customized it beyond the defaults above.

@@ -1,20 +1,17 @@
-# Packs all four Umbraco.Automate.Salesforce NuGet packages (Core, Persistence.SqlServer,
-# Persistence.Sqlite, and the Umbraco.Automate.Salesforce meta-package) with the correct
-# release-mode dependency pins.
+﻿# Packs the Umbraco.Automate.Salesforce NuGet package with the correct release-mode dependency
+# pins.
 #
-# Why this script exists: packing any of these projects with the default
-# UseProjectReferences=true (the dev-mode default, active whenever the sibling
-# ../Umbraco.Automate monorepo checkout exists — see the root README's "Repository home"
-# section) bakes in whatever local preview version Nerdbank.GitVersioning computed for that
-# checkout's Umbraco.Automate.Core/Umbraco.Automate.OpenIddict projects, instead of the real
-# published version range pinned in Directory.Packages.props. A package built that way
-# restores fine on this machine and nowhere else. -p:UseProjectReferences=false forces the
-# real PackageReference path — confirmed by inspecting the resulting .nuspec after packing
-# both ways.
+# Why this script exists: packing with the default UseProjectReferences=true (the dev-mode
+# default, active whenever the sibling ../Umbraco.Automate monorepo checkout exists — see the
+# root README's "Repository home" section) bakes in whatever local preview version
+# Nerdbank.GitVersioning computed for that checkout's Umbraco.Automate.Core/Umbraco.Automate.OpenIddict
+# projects, instead of the real published version range pinned in Directory.Packages.props. A
+# package built that way restores fine on this machine and nowhere else.
+# -p:UseProjectReferences=false forces the real PackageReference path — confirmed by inspecting
+# the resulting .nuspec after packing both ways.
 #
 # Mirrors the real monorepo's .azure-pipelines/templates/pack-product.yml pack step
-# (`dotnet pack {product}.slnx --configuration Release --no-build -p:UseProjectReferences=false`),
-# adapted for this repo's four-project layout.
+# (`dotnet pack {product}.slnx --configuration Release --no-build -p:UseProjectReferences=false`).
 
 param(
     [string]$OutputDirectory = "artifacts/nupkg",
@@ -27,9 +24,6 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Push-Location $RepoRoot
 
 $Projects = @(
-    "src/Umbraco.Automate.Salesforce.Core/Umbraco.Automate.Salesforce.Core.csproj",
-    "src/Umbraco.Automate.Salesforce.Persistence.SqlServer/Umbraco.Automate.Salesforce.Persistence.SqlServer.csproj",
-    "src/Umbraco.Automate.Salesforce.Persistence.Sqlite/Umbraco.Automate.Salesforce.Persistence.Sqlite.csproj",
     "src/Umbraco.Automate.Salesforce/Umbraco.Automate.Salesforce.csproj"
 )
 
@@ -61,8 +55,6 @@ Write-Host ""
 Write-Host "=== Packed ===" -ForegroundColor Cyan
 Get-ChildItem $OutputDirectory -Filter "*.nupkg" | ForEach-Object { Write-Host "  $($_.Name)" -ForegroundColor Gray }
 Write-Host ""
-Write-Host "All four packages must be pushed to the target feed TOGETHER — the meta-package" -ForegroundColor Yellow
-Write-Host "pins exact versions on the other three, not a range. See scripts/install-package-test-site.ps1" -ForegroundColor Yellow
-Write-Host "to verify this set actually installs before publishing." -ForegroundColor Yellow
+Write-Host "See scripts/install-package-test-site.ps1 to verify this actually installs before publishing." -ForegroundColor Yellow
 
 Pop-Location

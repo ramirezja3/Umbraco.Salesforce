@@ -4,6 +4,8 @@ Every action below requires only the `api` and `refresh_token` scopes granted du
 
 Every input field can be a literal value or a `${ }` binding to an earlier trigger's or step's output (e.g. `${ trigger.Email }`) — see Umbraco Automate's own binding documentation for the full syntax. Every write action returns the affected record's Salesforce Id and a success/failure status usable by later steps.
 
+Each action targets one specific, named Salesforce object with named fields — there's no "pick an object API name" action in this package. If you need to write to a Salesforce object not covered here, that's currently outside this package's scope.
+
 ## Create Lead
 
 The most common action in this package — creates a Salesforce Lead from named fields, for the classic "someone did something on the website, get them into the CRM as a Lead" flow.
@@ -26,65 +28,92 @@ The most common action in this package — creates a Salesforce Lead from named 
 
 **Example:** a Member Saved trigger firing on member registration → Create Lead, with Email bound to `${ trigger.Email }` and Last Name bound to `${ trigger.MemberName }`.
 
-## Create Record
+## Create/Update Contact
 
-The general-purpose write action for any Salesforce object *other* than Lead (Contact, Account, Opportunity, Case, custom objects) — use Create Lead instead for Leads specifically.
-
-**Inputs:**
-- **Object** — the Salesforce object API name, e.g. `Contact`, `Case`, `My_Custom_Object__c`.
-- **Fields** — a JSON object of field values, e.g. `{"LastName": "Smith", "AccountId": "001xx..."}`.
-
-**Output:** the new record's Salesforce Id.
-
-## Update Record
-
-Updates an existing record by Id.
+Creates a new Salesforce Contact, or updates one by Id — the "known customer" counterpart to Create Lead. Switching between create and update is explicit (via **Contact Id**), not an automatic email lookup: the intended flow is to create a Contact on a customer's first web action and store the returned record Id somewhere (e.g. on an Umbraco member), then bind that Id back in on later automations to update the same Contact.
 
 **Inputs:**
-- **Object** — the Salesforce object API name.
-- **Record Id** — the Id of the record to update.
-- **Fields** — a JSON object of the field values to change, e.g. `{"Status": "Closed"}`.
 
-## Upsert Record
+| Field | Required | Notes |
+|---|---|---|
+| Last Name | Yes | |
+| First Name | No | |
+| Email | No | |
+| Phone | No | |
+| Account Id | No | The Salesforce Id of the Account (company) this Contact belongs to. Not required by Salesforce itself, but many organizations require it via their own validation rules. |
+| Contact Id (to update) | No | Leave empty to create a new Contact. Set to an existing Contact's Id to update it instead. |
+| Additional Fields | No | A JSON object for anything not covered above, e.g. `{"Department": "Engineering"}`. |
 
-Creates the record if it doesn't already exist, or updates it if it does, matched by an **External ID** field rather than the Salesforce record Id. This is the retry-safe, idempotent write path — prefer it over Create Record whenever an automation might run more than once for the same real-world entity (the most common case: a repeated form submission from the same person shouldn't create a duplicate Contact/Lead).
+**Output:** the created/updated Contact's Salesforce Id, and whether a new Contact was created.
 
-**Inputs:**
-- **Object** — the Salesforce object API name.
-- **External Id Field** — the API name of the External ID field to match on, e.g. `Website_User_Id__c`.
-- **External Id Value** — the value to match against that field.
-- **Fields** — a JSON object of the field values to set.
+**Example:** a customer creates an account on a Commerce site → Create/Update Contact with no Contact Id (creates); store the returned Id on the member. Later, when their profile changes → Create/Update Contact again with that stored Id (updates the same Contact).
 
-**Example:** a form submission automation upserting a Contact keyed by email, so resubmitting the same form doesn't create a second Contact.
+## Create Opportunity
 
-## Get Record
-
-Retrieves a single record by Id for use by later steps in the same automation (e.g. to personalize a page, or to check a field's current value before deciding what to do next).
-
-**Inputs:**
-- **Object** — the Salesforce object API name.
-- **Record Id** — the Id of the record to retrieve.
-- **Fields** — comma-separated field API names to return, e.g. `Id,Name,Email`. Leave empty to return all fields.
-
-## Delete Record
-
-Deletes a record by Id. **Destructive and cannot be undone.**
+Creates a Salesforce Opportunity — logs a deal, e.g. when a Commerce order is placed.
 
 **Inputs:**
-- **Object** — the Salesforce object API name.
-- **Record Id** — the Id of the record to delete.
-- **Confirm Delete** — must be explicitly checked, or the step fails validation. This exists specifically to stop an accidental destructive automation from shipping unnoticed.
 
-**Example:** a member requests account deletion on the site (a GDPR/data-erasure request) → Delete Record (or Update Record, to anonymize instead of delete) on their matching Salesforce Contact/Lead.
+| Field | Required | Notes |
+|---|---|---|
+| Name | Yes | A name for the opportunity, e.g. the order reference |
+| Stage | Yes | Must match a configured Opportunity Stage picklist value, e.g. "Prospecting" |
+| Close Date | Yes | As `YYYY-MM-DD` |
+| Account Id | No | The associated Account's Salesforce Id. Not required by Salesforce itself, but many organizations require it via their own validation rules. |
+| Amount | No | |
+| Additional Fields | No | A JSON object for anything not covered above, e.g. `{"LeadSource": "Website"}`. |
 
-## Query Records (SOQL)
+**Output:** the new Opportunity's Salesforce record Id.
 
-Runs a bounded SOQL `SELECT` query and returns the matching records — the lookup/dedupe-check action (e.g. "does a Lead with this email already exist" before deciding whether to create one).
+**Example:** a Commerce order is placed → Create Opportunity with Name bound to the order reference, Amount bound to the order total.
+
+## Update Opportunity Stage
+
+Moves an existing Opportunity to a new stage — pairs naturally with Create Opportunity, progressing the same deal as its real-world status changes.
 
 **Inputs:**
-- **SOQL Query** — a `SELECT` statement. Must start with `SELECT`, may not contain a semicolon, and its row count is capped (see Max Rows) regardless of what `LIMIT` the query itself specifies.
-- **Max Rows** — the maximum number of rows to return (default 200).
 
-**Security note:** if you build a `WHERE ... = '${ binding }'` clause yourself using a bound value, escape it — Umbraco Automate's binding substitution happens before this action ever sees the settings, so it has no way to escape a value on your behalf. This package's SOQL escaping helper exists for exactly this case; do not string-concatenate untrusted binding values directly into a query.
+| Field | Required | Notes |
+|---|---|---|
+| Opportunity Id | Yes | |
+| Stage | Yes | Must match a configured Opportunity Stage picklist value, e.g. "Closed Won" |
 
-**Example:** before running Create Lead on a form submission, run Query Records with `SELECT Id FROM Lead WHERE Email = '...'` and branch to Update Record instead if a match is found — or just use Upsert Record, which does this in one step when an External ID field is available.
+**Output:** the Opportunity's Salesforce Id (echoed back, for convenience binding into later steps).
+
+**Example:** a Commerce order ships → Update Opportunity Stage to "Closed Won"; an order is refunded or cancelled → "Closed Lost".
+
+## Add to Campaign
+
+Adds a Contact or Lead to a Salesforce Campaign — the "this person did the marketing thing" action.
+
+**Inputs:**
+
+| Field | Required | Notes |
+|---|---|---|
+| Campaign Id | Yes | |
+| Contact Id | One of Contact Id / Lead Id | Provide exactly one, not both |
+| Lead Id | One of Contact Id / Lead Id | Provide exactly one, not both |
+| Status | No | Campaign member status, e.g. "Responded". Defined per-campaign in Salesforce Setup, not a global picklist — leave empty to use the campaign's own configured default status |
+
+**Output:** the new CampaignMember record's Salesforce Id.
+
+**Example:** an Engage-personalized journey completes, or a visitor downloads gated content → Add to Campaign with the matching Contact/Lead Id.
+
+## Log Engagement Activity
+
+Logs a completed activity (a Salesforce Task) against a Contact or Lead — turns an on-site behavioral signal into something a salesperson sees directly on that person's Activity History timeline in Salesforce.
+
+**Inputs:**
+
+| Field | Required | Notes |
+|---|---|---|
+| Contact or Lead Id | Yes | Salesforce's `Task.WhoId` accepts either type directly |
+| Subject | Yes | A short summary, e.g. "Website Engagement: Downloaded Pricing Guide" |
+| Description | No | |
+| Activity Date | No | As `YYYY-MM-DD`. Leave empty to leave the date unset |
+
+The logged Task is always marked "Completed" — this action logs something that already happened, not an assigned to-do, so there's no status to pick.
+
+**Output:** the new Task's Salesforce Id.
+
+**Example:** an Engage segment match (e.g. "re-engaged after 30 days inactive") → Log Engagement Activity against that visitor's Contact/Lead Id, so the sales team sees it on their timeline.

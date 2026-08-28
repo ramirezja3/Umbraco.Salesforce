@@ -8,7 +8,7 @@ The Salesforce Connected App's Client Secret lives only in configuration (`appse
 
 ## Injection
 
-SOQL inputs built by this package's own actions (Get Record, Delete Record, Upsert Record) are parameterized by construction — object/field/Id values are placed into the request path or a structured JSON body, not concatenated into a query string. The one place a free-text query is genuinely user/automation-author-supplied is the Query Records (SOQL) action's query field. Umbraco Automate's `${ }` binding substitution happens before this package's code ever sees the settings value, so an action has no hook to escape a bound value inline — this package therefore cannot make an arbitrary bindable SOQL field fully injection-safe by itself. What it does do: reject queries that don't start with `SELECT`, reject a literal semicolon, and enforce a row cap regardless of the query's own `LIMIT`. A helper (`SalesforceSoqlEscaper`) is available for automation authors who build a `WHERE ... = '${ binding }'` clause themselves and need to escape the bound value — see [docs/actions.md](actions.md)'s note on Query Records.
+Every action in this package targets a fixed, named Salesforce object (Lead, Contact, Opportunity, CampaignMember, Task) through named, typed fields placed into a structured JSON request body — never a free-text object name, and no raw SOQL anywhere in this package's surface. There is no injection surface to defend against: a bound value (e.g. `${ trigger.Email }`) becomes one JSON field's value, never text concatenated into a query or path.
 
 ## Rate limiting and abuse
 
@@ -22,25 +22,22 @@ Salesforce's Web Server OAuth flow returns no `expires_in`, so the locally track
 
 Salesforce connections are Umbraco Automate connections like any other — they are scoped to Workspaces and follow Umbraco Automate's own workspace-permission model. A backoffice user without access to a workspace cannot see or use the Salesforce connection(s) available to it. This package does not introduce a parallel permission model of its own.
 
-## Destructive actions
-
-Delete Record requires an explicit "Confirm Delete" checkbox in its configuration — the step fails validation if it isn't set — and is labelled as destructive in the action picker. There is no way to delete a Salesforce record through this package's actions without that explicit opt-in.
-
 ## Data handling and GDPR
 
-This package's own persistence (a single table tracking each polling trigger's last-checked timestamp and a small per-record snapshot used only to detect a stage/status change) stores no personal data beyond whatever Salesforce record Ids and stage/status values are needed to detect the next change — it does not cache field values like names or email addresses. Salesforce record fields flowing through triggers and actions (which frequently *do* include personal data — names, emails, phone numbers) pass through this package only for the duration of a single automation run; nothing is cached or persisted by this package beyond that run. Given the Danish/EU context this package is likely to be used in, GDPR-relevant flows to be aware of when designing an automation: Create/Update/Upsert Record write personal data into Salesforce; Delete Record is the natural fit for a data-erasure request; Query Records can return personal data into later steps, which an automation author should be mindful of when deciding what a later step (e.g. a notification) then does with it.
+This package keeps no persistence or local state of its own at all — every action calls the Salesforce REST API directly and returns. Salesforce record fields flowing through actions (which frequently *do* include personal data — names, emails, phone numbers) pass through this package only for the duration of a single automation run; nothing is cached or persisted by this package beyond that run. Given the Danish/EU context this package is likely to be used in: every action in this set *writes* personal data into Salesforce (Create Lead, Create/Update Contact, Create Opportunity, Add to Campaign, Log Engagement Activity) — none of them delete or read it back out. A data-erasure request needs to be handled directly in Salesforce; this package doesn't currently offer a delete/anonymize action.
 
 ## Threat model summary
 
 | Threat | Mitigation |
 |---|---|
 | OAuth token theft | Tokens encrypted at rest via the platform's Data Protection mechanism; never logged; never exposed in the Run history UI. |
-| SOQL injection | Structured actions (Get/Update/Upsert/Delete) never concatenate user input into a query. Query Records enforces `SELECT`-only, no semicolon, and a row cap; a documented escaping helper exists for authors who build their own `WHERE` clauses, since this package cannot escape a value that's already been substituted into the settings string before its code runs. |
+| Injection | Not applicable — every action writes named, typed fields to a fixed object; there is no free-text object name or raw SOQL anywhere in this package (see Injection above). |
 | Session/credential compromise via a stale or leaked token | Encrypted storage; automatic refresh-and-retry on detected session staleness; a clear "reconnect" path (requiring the implementer's own interactive login) when a refresh token itself is no longer valid. |
-| Over-broad OAuth scopes | Every action in this package needs only `api` and `refresh_token` — no action requests a scope beyond what it actually uses. |
+| Over-broad OAuth scopes | The OAuth registration requests only `api` and `refresh_token` by default; an implementer can broaden this via `Umbraco:Automate:Providers:Salesforce:Scopes` if a future need arises, but nothing beyond the default is requested unless configured. |
 | A runaway automation exhausting the org's API allocation | Backoff-with-jitter and a bounded retry count on rate-limit responses; ultimately a monitoring/design responsibility of whoever builds the automation, not something a client library alone can fully prevent. |
 
 ## What this package does *not* do
 
+- It ships no triggers — nothing in this package fires an automation off a Salesforce-side event. It is a write-only action library (create/update, never read or delete): your automations reach into Salesforce, not the other way around.
 - It does not validate an inbound webhook signature, because it does not ship a Salesforce-facing inbound webhook endpoint — Salesforce Outbound Message support was considered and removed from this package's scope (see the project's own change history); a website receiving unsolicited inbound Salesforce callouts is not one of the use cases this package targets.
 - It does not implement its own encryption, token storage, or OAuth client — all of that is deliberately delegated to `Umbraco.Automate.OpenIddict`, which is the audited, shared implementation every Automate provider uses.

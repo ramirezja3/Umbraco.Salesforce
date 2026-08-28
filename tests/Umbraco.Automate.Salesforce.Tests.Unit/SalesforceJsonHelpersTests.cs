@@ -4,8 +4,7 @@ namespace Umbraco.Automate.Salesforce.Tests.Unit;
 
 public class SalesforceJsonHelpersTests
 {
-    // Regression coverage for the senior-engineer bug-hunt pass (docs/dev-notes.md §0a, finding #1):
-    // `fields["Amount"] as double?` silently evaluated to null for any whole-dollar Opportunity,
+    // `fields["Amount"] as double?` silently evaluates to null for any whole-dollar Opportunity,
     // because a boxed long can never satisfy `as double?`. ToDouble must handle every boxed
     // numeric CLR type ToFieldDictionary's Unwrap can actually produce (long for whole-number
     // JSON literals, double for anything with a decimal point) plus the other boxed value types

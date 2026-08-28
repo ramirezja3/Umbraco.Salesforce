@@ -1,10 +1,12 @@
+using System.Net;
+using Umbraco.Automate.Core.Actions;
 using Umbraco.Automate.Salesforce.Actions;
+using Umbraco.Automate.Salesforce.Api;
 
 namespace Umbraco.Automate.Salesforce.Tests.Unit;
 
 public class SalesforceActionSupportTests
 {
-    // Regression coverage for the senior-engineer bug-hunt pass (docs/dev-notes.md §0a, finding #6):
     // CreateLeadAction (and any other action with named fields + an AdditionalFields escape
     // hatch) relies on TryParseFields' dictionary being case-insensitive so that assigning a
     // named field on top of it (e.g. fields["Email"] = settings.Email;) correctly overrides a
@@ -56,5 +58,35 @@ public class SalesforceActionSupportTests
 
         failure.ShouldNotBeNull();
         fields.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TryParseFields_InvalidJson_MessageNamesExpectedShapeInsteadOfRawParserError()
+    {
+        // The error must name the expected shape rather than surface the raw System.Text.Json
+        // parser message verbatim (e.g. "'T' is an invalid start of a value. Path: $ |
+        // LineNumber: 0 | BytePositionInLine: 0.").
+        var failure = SalesforceActionSupport.TryParseFields("This is plain text, not JSON", out _);
+
+        failure.ShouldNotBeNull();
+        failure.Exception!.Message.ShouldContain("JSON object of field API names to values");
+        failure.Exception.Message.ShouldContain("This is plain text, not JSON");
+        failure.Exception.Message.ShouldNotContain("BytePositionInLine");
+    }
+
+    [Fact]
+    public void Failed_MapsMessageAndCategoryFromTheAlreadyMappedError()
+    {
+        var result = new SalesforceApiResult
+        {
+            StatusCode = HttpStatusCode.BadRequest,
+            IsSuccess = false,
+            Error = new SalesforceApiError("A required Salesforce field is missing: LastName", "REQUIRED_FIELD_MISSING", StepRunErrorCategory.Validation),
+        };
+
+        var failure = SalesforceActionSupport.Failed(result);
+
+        failure.Exception!.Message.ShouldBe("A required Salesforce field is missing: LastName");
+        failure.ErrorCategory.ShouldBe(StepRunErrorCategory.Validation);
     }
 }

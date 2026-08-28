@@ -5,11 +5,10 @@ namespace Umbraco.Automate.Salesforce.Tests.Unit;
 
 public class SalesforceConnectionResolverTests
 {
-    // Regression coverage for the senior-engineer bug-hunt pass (docs/dev-notes.md §0a, finding #3):
-    // concurrent ForceRefreshAsync calls for the same credentialsId previously had no
-    // coordination at all, so two automation steps hitting INVALID_SESSION_ID at the same moment
-    // could both redeem the refresh token — risky against a Connected App Refresh Token Policy
-    // that rotates/invalidates the previous refresh token on each use.
+    // Concurrent ForceRefreshAsync calls for the same credentialsId must be coordinated so two
+    // automation steps hitting INVALID_SESSION_ID at the same moment can't both redeem the
+    // refresh token — risky against a Connected App Refresh Token Policy that
+    // rotates/invalidates the previous refresh token on each use.
 
     private static OAuthCredentials NewCredentials(Guid id, string instanceUrl = "https://na1.salesforce.com")
         => new()
@@ -62,6 +61,36 @@ public class SalesforceConnectionResolverTests
         secondResult!.AccessToken.ShouldBe("token-2");
         service.Verify(s => s.GetValidAccessTokenAsync(firstId, It.IsAny<CancellationToken>()), Times.Once);
         service.Verify(s => s.GetValidAccessTokenAsync(secondId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ForceRefreshAsync_FailedRefresh_IsNotCachedSoTheNextCallRetriesInsteadOfReusingTheFailure()
+    {
+        // A failed refresh's null result must not be cached for the 5-second freshness window
+        // the way a successful one is — otherwise one transient blip on Salesforce's token
+        // endpoint would get replayed as a failure to every other caller for the rest of that
+        // window instead of each getting its own attempt.
+        var credentialsId = Guid.NewGuid();
+        var credentials = NewCredentials(credentialsId);
+
+        var service = new Mock<IOAuthCredentialsService>();
+        service.Setup(s => s.GetCredentialsAsync(credentialsId, It.IsAny<CancellationToken>())).ReturnsAsync(credentials);
+        service.Setup(s => s.UpdateCredentialsAsync(It.IsAny<OAuthCredentials>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        // Empty access token simulates a failed refresh (e.g. the refresh token itself was
+        // revoked) — ResolveCoreAsync treats this as "resolution failed", returning null.
+        service.Setup(s => s.GetValidAccessTokenAsync(credentialsId, It.IsAny<CancellationToken>())).ReturnsAsync(string.Empty);
+
+        var resolver = new SalesforceConnectionResolver(service.Object);
+
+        var first = await resolver.ForceRefreshAsync(credentialsId, CancellationToken.None);
+        var second = await resolver.ForceRefreshAsync(credentialsId, CancellationToken.None);
+
+        first.ShouldBeNull();
+        second.ShouldBeNull();
+        // Both calls land inside the same 5-second freshness window in practice (this test runs
+        // in milliseconds) — if the failure had been cached, the second call would short-circuit
+        // without calling GetValidAccessTokenAsync again.
+        service.Verify(s => s.GetValidAccessTokenAsync(credentialsId, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]

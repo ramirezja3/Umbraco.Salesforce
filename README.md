@@ -1,6 +1,6 @@
 # Umbraco Automate Salesforce
 
-Salesforce connection, triggers, and actions for [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate).
+Salesforce connection and actions for [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate).
 
 Mirrors the structure and conventions of `Umbraco.Automate.Slack` and
 `Umbraco.Automate.OpenIddict`.
@@ -17,8 +17,7 @@ dependency — you never install it by hand.
 ## Documentation
 
 - [docs/installation.md](docs/installation.md) — Connected App setup, configuration, first connect.
-- [docs/triggers.md](docs/triggers.md) — the one Salesforce trigger this package ships and why.
-- [docs/actions.md](docs/actions.md) — the seven Salesforce actions, their inputs/outputs, and example use.
+- [docs/actions.md](docs/actions.md) — the six Salesforce actions, their inputs/outputs, and example use.
 - [docs/security.md](docs/security.md) — the security/compliance posture this package targets.
 - [docs/troubleshooting.md](docs/troubleshooting.md) — common Salesforce error codes and what to do about each.
 
@@ -29,15 +28,15 @@ sibling `../Umbraco.Automate` checkout (see below) — that proves the code work
 *package* does. Before publishing a release:
 
 ```powershell
-./scripts/pack-release.ps1                    # packs all 4 projects with real dependency pins
+./scripts/pack-release.ps1                    # packs the package with real dependency pins
 ./scripts/install-package-test-site.ps1       # spins up a fresh site and installs from the pack output
 ```
 
 The second script creates a genuinely separate Umbraco 17 site under `demos/v17/` and installs
 `Umbraco.Automate` (from nuget.org) and `Umbraco.Automate.Salesforce` (from the local pack output)
-as real NuGet packages — no project references. Confirm the server log shows `Running N pending
-Automate migrations` / `Automate migrations completed successfully`, and that **Automation →
-Connections → Create** lists both Salesforce connection types, before publishing.
+as real NuGet packages — no project references. Confirm that **Automation → Connections → Create**
+lists both Salesforce connection types, and that the action picker shows all six Salesforce
+actions, before publishing.
 
 ## Repository home
 
@@ -72,15 +71,16 @@ Without that sibling checkout, the build still works — it falls back to the
 ```
 Umbraco.Automate.Salesforce/
 ├── src/
-│   ├── Umbraco.Automate.Salesforce/                    # Meta-package (bundles the three below)
-│   ├── Umbraco.Automate.Salesforce.Core/                # Actions, Triggers, Connection, Composer
-│   ├── Umbraco.Automate.Salesforce.Persistence.SqlServer/  # EF Core migrations (SQL Server)
-│   └── Umbraco.Automate.Salesforce.Persistence.Sqlite/     # EF Core migrations (SQLite)
+│   └── Umbraco.Automate.Salesforce/    # Actions, Connection, Configuration — the one NuGet package
 ├── tests/
 │   ├── Umbraco.Automate.Salesforce.Tests.Unit/
 │   └── Umbraco.Automate.Salesforce.Tests.Integration/
 └── Umbraco.Automate.Salesforce.slnx
 ```
+
+No persistence project and no meta-package split (unlike `Umbraco.Automate.OpenIddict`'s
+multi-package shape) — this package ships no triggers and keeps no local state, so it's a single
+Razor SDK class library, the same shape as `Umbraco.Automate.Slack`.
 
 ## Build
 
