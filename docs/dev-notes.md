@@ -708,18 +708,49 @@ group appear. **Doc implication:** added to `docs/troubleshooting.md` — this i
 of platform (not package) behavior that looks like a bug to an implementer, per this file's own
 recurring pattern for documenting those.
 
+## 18. Real interactive OAuth flow completed end to end (2026-08-28, same day as §17)
+
+With a real Connected App's Client ID/Secret added to the package-test site's
+`appsettings.Development.json` by the user, this pass completed the one thing §17 flagged as
+unverified: the actual `authorization_code` grant through the real backoffice UI, not just Client
+Credentials Flow.
+
+- Clicked **Authenticate with Salesforce** on the `Test Salesforce Connection` created in §17 —
+  completed near-instantly with no visible login prompt, because this Chrome profile already had
+  an active Salesforce session from earlier work on this package (see §0a's "Interactive OAuth
+  flow" entry) and Salesforce skipped straight through. **Two dry-run clicks before this one showed
+  no effect at all** — turned out to be a coordinate-tracking mistake in the browser-automation
+  driver (clicking where the button used to be after a page reload shifted the layout), not a
+  package or platform bug; worth remembering that automated UI verification needs to re-locate
+  elements after every navigation, not reuse coordinates from a prior screenshot.
+- **Saved, then confirmed the credential genuinely persisted** — a hard reload reverted an
+  *unsaved* "Connected" state back to "Authenticate with Salesforce" the first time this was
+  tried (expected: the UI reflects the in-progress OAuth result before Save writes it to the
+  connection record). After Save, a reload kept "Connected," and **Test Connection** succeeded
+  against the real org, returning the real org Id and username.
+- **Ran the package for real, end to end, through the actual canvas**: built a `Live Verification`
+  automation (Manual Trigger → Create Lead) in the same workspace, published it, and used **Run
+  now**. The run completed successfully (~1s wall time, ~508ms for the Salesforce REST call) — the
+  first genuine "an implementer clicks a button and a Lead appears in Salesforce" confirmation this
+  package has ever had, as opposed to a unit test, a live-org fixture test, or a Client Credentials
+  Flow probe.
+- **Genuinely new finding: a step's Salesforce connection is auto-resolved, not manually picked**,
+  when the workspace has exactly one connection of the required type — the `Create Lead` node on
+  the canvas showed a bound connection Id under it immediately upon adding the step, with no
+  picker UI ever shown. Not tested: what the UX is when a workspace has two connections of the
+  same type (e.g. two production Salesforce orgs) — per Finding #6 in
+  `SALESFORCE-PACKAGE-BUGS.md` (removed in §15, but the underlying ambiguity was never actually
+  fixed) this may still default to "first match" the way the old polling-trigger resolver did;
+  worth a follow-up before calling multi-org support fully verified.
+- The test Lead the run created (`LastName=IntegrationTest`,
+  `Company=Umbraco Automate Salesforce Live Verification`) was queried and deleted from the real
+  org afterward via a throwaway Client Credentials script, so nothing was left behind in the user's
+  org from this verification pass.
+
 **Still open, genuinely blocked on things outside this session's reach:**
 - **Add to Campaign's live coverage** needs someone with access to this org's Salesforce Setup to
   grant the integration user Campaign create permission (or enable "Marketing User"). Not a code
   fix.
-- **The interactive OAuth popup flow (the actual `authorization_code` grant against a real
-  Salesforce login) was not re-verified this pass** — only that the connection type renders and an
-  unauthenticated connection can be created/saved. Completing the real OAuth handshake needs a
-  human with real Connected App credentials and a real Salesforce login (username/password/MFA),
-  which is not something to script or hand credentials for. The package-test site above is booted
-  and ready for whoever does this — see its own printed instructions (Connected App Client
-  ID/Secret still need to be filled in from a real Connected App before "Authenticate with
-  Salesforce" will do anything).
 - **CI has still never actually executed.** The pipeline definition itself checks out (real
   package resolution confirmed working end-to-end by the install-site test above, `global.json`
   present and matching, `useGlobalJson: true` will resolve correctly) — but wiring it to a real
