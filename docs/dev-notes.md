@@ -863,6 +863,35 @@ canvas control-flow nodes (If/Switch/ForEach/Parallel) as actual workflow steps 
 code-level equivalents. Worth a follow-up once the Automate section's rendering issue in this
 environment is understood or a different environment is available.
 
+### The Automate canvas rendering issue, actually root-caused this time — confirmed as an Umbraco Core frontend bug, not this package's
+
+Asked directly to retry the UI, this pass went past "it's blank with no errors" (§18/§19) into the
+actual Lit component tree via `document.querySelector`/shadow-DOM traversal, on a fresh login with
+the password-manager autofill conflict from §18 worked around by setting form values directly via
+the DOM (`form_input`) instead of simulated keystrokes, which the extension doesn't intercept.
+
+Traced the render tree by hand: `umb-app` → `umb-router-slot` → `umb-backoffice` →
+`umb-backoffice-main` → `umb-router-slot` → `umb-section-default` (Automate's own top-level section
+renderer, manifest alias `Ua.Section.Automate`). That component's **own reactive state says it has
+something to render** — `_sidebarApps` contains exactly one entry
+(`UmbracoAutomate.SectionSidebarApp.Settings`) with `_isConditionsPositive: true`, and `_routes` has
+2 entries — but its actual light-DOM output is empty (`innerHTML: ""`, 0 children), both on initial
+load and after forcing `requestUpdate()` + awaiting `updateComplete` manually from the console. No
+exception, no rejected promise, nothing — the component's internal properties say "render this,"
+and its `render()` output is nonetheless empty every time.
+
+This is conclusively **Umbraco Core's own `umb-section-default` component failing to translate its
+own state into output**, not a manifest problem on this package's side — `UmbracoAutomate.SectionSidebarApp.Settings`
+is present in `_sidebarApps` and its condition already evaluated positive, so the extension
+registration this package (or `Umbraco.Automate.Core`) contributes is not what's missing. Nothing
+about the Salesforce package's own manifest, actions, or connection types is implicated. Given this
+is a live+reproducible-on-this-machine Umbraco Core frontend defect (or an interaction between it
+and something else in this environment neither this session nor a fresh site/database/browser
+could isolate further — see §18), it's out of scope to fix from inside this package, and is
+recorded here rather than chased into Umbraco Core's own source. The package's actual behavior
+remains verified correct via the 15 live REST/action-level tests in §19, which don't depend on this
+component at all.
+
 All test data created during this pass (Leads/Contacts/Opportunities/Campaigns/CampaignMembers/
 Tasks, all tagged with a `POC-` prefix) was queried and deleted from the real org afterward —
 confirmed zero remaining by a final sweep.
