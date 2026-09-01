@@ -923,6 +923,7 @@ bug here, and there is no Salesforce-package bug here either — the package's m
 sidebar-app registration are all working exactly as intended, on a clean site, with real Salesforce
 credentials configured. The entire multi-session "blank Automate section" investigation (§18, §19,
 and the section above) was chasing a UI affordance, not a defect. No code changes were needed as a
+result of this correction.
 
 ### Real canvas UI POC, continued on the clean MinimalRepro site — connection editor "Connected" vs. "Test connection" gap
 
@@ -943,4 +944,33 @@ necessarily a Salesforce-specific defect, but recorded here since this is where 
 fixed — out of scope for this package if it's Core/editor behavior; worth a one-line callout in
 `docs/installation.md` ("Save before testing a freshly-authenticated connection") if this proves
 confusing to implementers, but not added yet pending confirmation it isn't already obvious enough.
+
+### First real canvas execution: all 6 actions and the If control-flow node run correctly end to end
+
+Ran the published "Opportunity Lifecycle POC" automation (Manual Trigger → Create Opportunity →
+Update Opportunity Stage → If `${ steps.createOpportunity.recordId } is not empty` → true-branch Log
+Engagement Activity) via the tree's inline Run action. Result: `Completed` in 4s, every step
+`Completed`, the If node correctly routed to the true branch. Verified independently via direct
+Salesforce REST queries (not just the Run log): the Opportunity was created with the configured
+Name/Amount, its Stage was updated to "Closed Won", and a Task was created with the exact Subject/
+Description configured, correctly linked (`WhoId`) to the Lead bound in from a separate REST-created
+record. This is the first real proof that this package's actions, output bindings (`${ steps.x.y }`),
+and a canvas control-flow node all compose correctly through the actual WorkflowCore-backed run
+engine — not just at the REST/action-harness level (§19) or the connection level (previous entries).
+
+One genuine-looking anomaly surfaced during verification, run to ground rather than left as a loose
+end: the created Opportunity's `CloseDate` came back as the run's execution date, not the
+`2026-12-31` configured on the Create Opportunity step. Confirmed via `OpportunityHistory` that this
+is **not a bug in either action**: the history shows `CloseDate = 2026-12-31` on the very first
+(create) snapshot, then `CloseDate` flips to today's date on the second snapshot — the exact same
+write that changed `StageName` to "Closed Won". `UpdateOpportunityStageAction`'s PATCH body is
+`{ StageName = settings.StageName }` only (verified by reading the source); it never sends
+`CloseDate`. Salesforce (or an org-side Flow/Process on this Developer Edition org — not something
+this package created or controls) is auto-setting `CloseDate` to today as a side effect of closing
+the Opportunity. Implementers relying on this package's Update Opportunity Stage action to move an
+Opportunity to a closed stage should be aware their org may silently override `CloseDate` the same
+way; nothing to fix here, since the package sent exactly the field it was configured to send.
+
+All POC test data from both canvas sessions (the Campaign, the two Leads, and this Opportunity/Task
+pair) was swept from the real org afterward the same way as every previous pass.
 result of this correction.
