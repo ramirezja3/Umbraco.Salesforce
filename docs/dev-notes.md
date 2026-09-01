@@ -895,3 +895,52 @@ component at all.
 All test data created during this pass (Leads/Contacts/Opportunities/Campaigns/CampaignMembers/
 Tasks, all tagged with a `POC-` prefix) was queried and deleted from the real org afterward —
 confirmed zero remaining by a final sweep.
+
+### Correction to the above: it was never a rendering bug — the sidebar group was just collapsed
+
+The "Umbraco Core frontend bug" conclusion above is **wrong**, found while answering a direct
+follow-up ask to determine whether a genuinely fresh, minimal install (`Umbraco.Automate` only, no
+Salesforce) showed the same blank Automate section. It didn't — a brand-new site with only Core +
+Umbraco.Automate rendered the section perfectly on first load. Adding
+`Umbraco.Automate.Salesforce 0.1.0` (packed locally, installed via a `nuget.config` local feed) to
+that same site then appeared to reintroduce the "blank" symptom on a hard reload / direct URL
+navigation — sidebar showed only a "Settings" heading, no children, empty main pane, zero console
+errors, zero network failures, zero unhandled rejections (confirmed by installing
+`window.onerror`/`unhandledrejection`/`console.error` capture hooks before navigating).
+
+The actual explanation: **"Settings" is a collapsed-by-default sidebar group header, not a stuck or
+broken component.** Clicking it expands to reveal "Workspaces" and "Connections", and the main pane
+immediately renders the full "Welcome to Umbraco Automate" dashboard — every time, on both a hard
+reload and an SPA-internal client-side navigation, with Salesforce installed. What looked like two
+different symptoms across this saga (§18's "blank, no errors" and this section's "state says render
+but output is empty") was the same one-click affordance, missed repeatedly because nothing in the
+empty pane hints that the heading above it is clickable/collapsible.
+
+This means: `umb-section-default`'s reactive state genuinely was correct all along
+(`_sidebarApps`/`_routes` populated, conditions positive) — it just hadn't rendered its *expanded*
+child list yet, which is expected collapsed-group behavior, not a defect. There is no Umbraco Core
+bug here, and there is no Salesforce-package bug here either — the package's manifest, composer, and
+sidebar-app registration are all working exactly as intended, on a clean site, with real Salesforce
+credentials configured. The entire multi-session "blank Automate section" investigation (§18, §19,
+and the section above) was chasing a UI affordance, not a defect. No code changes were needed as a
+
+### Real canvas UI POC, continued on the clean MinimalRepro site — connection editor "Connected" vs. "Test connection" gap
+
+With the rendering mystery resolved, created a real workspace and a real "Salesforce" connection
+through the actual backoffice UI on the clean site, then ran the genuine interactive
+"Authenticate with Salesforce" popup against the live org (same org/user as earlier passes). Minor,
+worth-recording UX inconsistency found immediately after authenticating: the connection editor's
+**"Connected" indicator turns green immediately** after the OAuth popup completes, but clicking
+**"Test connection" before clicking Save** fails with "No Salesforce account has been authenticated
+for this connection." Clicking **Save**, then **Test connection** again, succeeds normally
+(confirmed live: `Connected to {redacted-org-id} as {redacted-test-username}`). Read as: the
+"Connected" badge reflects the OAuth credential record itself (persisted immediately by the
+callback), while "Test connection" resolves the connection through this package's own
+`ISalesforceConnectionResolver`, which needs the *connection entity* saved with a reference to that
+credential first — a save-ordering gap in the connection editor's UX, not a broken connection. Likely
+shared with any other OAuth-based connection type built the same way (Slack included), so not
+necessarily a Salesforce-specific defect, but recorded here since this is where it was found. Not
+fixed — out of scope for this package if it's Core/editor behavior; worth a one-line callout in
+`docs/installation.md` ("Save before testing a freshly-authenticated connection") if this proves
+confusing to implementers, but not added yet pending confirmation it isn't already obvious enough.
+result of this correction.
