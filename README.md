@@ -2,89 +2,55 @@
 
 Salesforce connection and actions for [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate).
 
-Mirrors the structure and conventions of `Umbraco.Automate.Slack` and
-`Umbraco.Automate.OpenIddict`.
+## Overview
 
-## Prerequisites
+Umbraco.Automate.Salesforce is a provider package that adds Salesforce connectivity to Umbraco Automate. It contributes two Salesforce connection types (production and sandbox, authenticated via OAuth) and six named CRM actions usable as steps in automations — for example, creating a Lead when content is published.
 
-0. Umbraco CMS 17.x (the active LTS line — see `v17/dev` in the `umbraco/Umbraco.Automate` monorepo) with **Umbraco.Automate** (core) installed and composed.
-   This package does nothing without it — see [docs/installation.md](docs/installation.md#step-0-prerequisites).
-1. A Salesforce Connected App (or External Client App) with OAuth enabled.
+Requires **Umbraco.Automate** (core) already installed and composed — this package does nothing on its own. `Umbraco.Automate.OpenIddict` is pulled in automatically as a transitive dependency; you never install it by hand.
 
-`Umbraco.Automate.OpenIddict` is pulled in automatically as a transitive NuGet
-dependency — you never install it by hand.
+## Key Features
+
+- **Salesforce connection types** — OAuth-based, for production (`login.salesforce.com`) and sandbox (`test.salesforce.com`) orgs, managed in the backoffice
+- **Six CRM actions** — Create Lead, Create/Update Contact, Create Opportunity, Update Opportunity Stage, Add to Campaign, Log Engagement Activity
+- **Automatic token management** — OAuth credentials are stored and refreshed transparently
+- **Rate-limit aware** — backs off automatically on Salesforce's `REQUEST_LIMIT_EXCEEDED` and 429 responses
+
+## Installation
+
+```bash
+dotnet add package Umbraco.Automate.Salesforce
+```
+
+## Configuration
+
+Create a Salesforce Connected App and configure its credentials via `appsettings.json`:
+
+```json
+{
+  "Umbraco": {
+    "Automate": {
+      "Providers": {
+        "Salesforce": {
+          "ClientId": "your-connected-app-consumer-key",
+          "ClientSecret": "your-connected-app-consumer-secret"
+        }
+      }
+    }
+  }
+}
+```
+
+The OAuth callback URI follows the convention `{your-site}/umbraco/automate/oauth/callback/salesforce` — add it to your Connected App's callback URLs. Then create a Salesforce connection in a workspace from the backoffice and authorize it via the OAuth popup.
+
+See [docs/installation.md](docs/installation.md) for the full Connected App setup walkthrough.
 
 ## Documentation
 
-- [docs/installation.md](docs/installation.md) — Connected App setup, configuration, first connect.
-- [docs/actions.md](docs/actions.md) — the six Salesforce actions, their inputs/outputs, and example use.
-- [docs/security.md](docs/security.md) — the security/compliance posture this package targets.
-- [docs/troubleshooting.md](docs/troubleshooting.md) — common Salesforce error codes and what to do about each.
+- [docs/installation.md](docs/installation.md) — Connected App setup, configuration, first connect
+- [docs/actions.md](docs/actions.md) — the six actions, their inputs/outputs, and example use
+- [docs/security.md](docs/security.md) — security and compliance posture
+- [docs/troubleshooting.md](docs/troubleshooting.md) — common Salesforce error codes and what to do about each
 
-## Verifying a packed release actually installs
+## License
 
-Every build in this repo up to `scripts/pack-release.ps1` builds via a `ProjectReference` to a
-sibling `../Umbraco.Automate` checkout (see below) — that proves the code works, not that the
-*package* does. Before publishing a release:
-
-```powershell
-./scripts/pack-release.ps1                    # packs the package with real dependency pins
-./scripts/install-package-test-site.ps1       # spins up a fresh site and installs from the pack output
-```
-
-The second script creates a genuinely separate Umbraco 17 site under `demos/v17/` and installs
-`Umbraco.Automate` (from nuget.org) and `Umbraco.Automate.Salesforce` (from the local pack output)
-as real NuGet packages — no project references. Confirm that **Automation → Connections → Create**
-lists both Salesforce connection types, and that the action picker shows all six Salesforce
-actions, before publishing.
-
-## Repository home
-
-This repo currently stands alone at `Salesforce v1/`. For local development it
-expects a sibling checkout of the *whole* `umbraco/Umbraco.Automate` monorepo
-at `../Umbraco.Automate`, checked out to **`v17/dev`** — the active LTS line
-this package targets (the repo's default branch is `v18/dev`; don't build
-against that one) — with **full history, not a shallow clone**: Core and
-OpenIddict both use Nerdbank.GitVersioning, which needs full history to compute
-a version and fails outright on `--depth 1`. Clone, switch branches, and (if
-you did shallow-clone) unshallow before building:
-
-```bash
-git clone https://github.com/umbraco/Umbraco.Automate.git ../Umbraco.Automate
-cd ../Umbraco.Automate && git checkout v17/dev
-# If you cloned with --depth 1 at any point:
-git fetch --unshallow origin v17/dev
-```
-
-That clone is the *monorepo root*, not the Core product folder directly — Core
-and OpenIddict each live one level further in, under their own like-named
-product folders within it (e.g. `../Umbraco.Automate/Umbraco.Automate/src/...`,
-not `../Umbraco.Automate/src/...`). This package's `.csproj` files already
-account for that extra nesting via their `ProjectReference` paths.
-
-Without that sibling checkout, the build still works — it falls back to the
-`Umbraco.Automate.Core` / `Umbraco.Automate.OpenIddict` NuGet packages pinned in
-`Directory.Packages.props`.
-
-## Project layout
-
-```
-Umbraco.Automate.Salesforce/
-├── src/
-│   └── Umbraco.Automate.Salesforce/    # Actions, Connection, Configuration — the one NuGet package
-├── tests/
-│   ├── Umbraco.Automate.Salesforce.Tests.Unit/
-│   └── Umbraco.Automate.Salesforce.Tests.Integration/
-└── Umbraco.Automate.Salesforce.slnx
-```
-
-No persistence project and no meta-package split (unlike `Umbraco.Automate.OpenIddict`'s
-multi-package shape) — this package ships no triggers and keeps no local state, so it's a single
-Razor SDK class library, the same shape as `Umbraco.Automate.Slack`.
-
-## Build
-
-```bash
-dotnet build Umbraco.Automate.Salesforce.slnx
-dotnet test Umbraco.Automate.Salesforce.slnx
-```
+MIT - See [LICENSE](LICENSE) for details.

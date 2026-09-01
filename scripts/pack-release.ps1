@@ -2,8 +2,8 @@
 # pins.
 #
 # Why this script exists: packing with the default UseProjectReferences=true (the dev-mode
-# default, active whenever the sibling ../Umbraco.Automate monorepo checkout exists — see the
-# root README's "Repository home" section) bakes in whatever local preview version
+# default, active whenever the sibling ../Umbraco.Automate monorepo checkout exists — see
+# CLAUDE.md's "Local development setup" section) bakes in whatever local preview version
 # Nerdbank.GitVersioning computed for that checkout's Umbraco.Automate.Core/Umbraco.Automate.OpenIddict
 # projects, instead of the real published version range pinned in Directory.Packages.props. A
 # package built that way restores fine on this machine and nowhere else.
