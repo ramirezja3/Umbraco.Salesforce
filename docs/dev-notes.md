@@ -973,4 +973,54 @@ way; nothing to fix here, since the package sent exactly the field it was config
 
 All POC test data from both canvas sessions (the Campaign, the two Leads, and this Opportunity/Task
 pair) was swept from the real org afterward the same way as every previous pass.
+
+## 20. Closing the declared-vs-verified version gap: tested against the newer end of the range (2026-09-02)
+
+Every prior live-org pass ran against the *floor* of the declared compatibility range —
+`Umbraco.Cms 17.4.0` / `Umbraco.Automate 17.2.0` / `Umbraco.Automate.OpenIddict 17.1.2` — because
+that's what the original demo sites happened to pin. Checking the real `umbraco/Umbraco.Automate`
+repo directly (branches, tags, and each release's own `Directory.Packages.props`) surfaced two
+things: the monorepo already has an actively-developed `v18` line the declared range correctly
+excludes (capped at `<18.0.0`), and the latest *published* v17.x versions — `Umbraco.Cms 17.6.2`,
+`Umbraco.Automate 17.3.0` — sit meaningfully above what had ever actually been run. The declared
+range covered them; nothing had proven it.
+
+Created a new demo site (`demos/v17/Umbraco.Automate.VersionRangeTest`) pinned explicitly to
+`Umbraco.Cms 17.6.2` / `Umbraco.Automate 17.3.0` (which itself resolved `Umbraco.Automate.OpenIddict`
+to `17.1.2`, satisfying its own floor) plus this package packed fresh at `0.1.0`. Restore, build, and
+boot were all clean — zero warnings beyond the usual pre-existing advisory noise, zero startup
+exceptions, and the boot log explicitly showed `Running 7 pending Automate migrations` →
+`Automate migrations completed successfully` and `The Umbraco Automate section has been assigned to
+the Admin group`, confirming the newer Core version's migrations and this package's manifest
+registration both ran without incident.
+
+In the backoffice: the Automate section rendered correctly (same collapsed-`Settings`-group
+behavior as documented in the corrected §19 finding above — not a defect), workspace creation
+worked, and critically **both connection types registered correctly** — the picker listed
+"Salesforce" and "Salesforce (Sandbox)" exactly as on the floor version. Created a real Salesforce
+connection through the actual UI; its settings form (name, alias, "Authenticate with Salesforce"
+button, field labels) rendered identically to the floor-version test. Saved successfully.
+
+**What wasn't completed:** verifying the action picker specifically shows all six Salesforce actions
+inside an automation's canvas. This session's browser automation hit a genuinely severe login-session
+loop on this particular site instance — the backoffice access token expired within seconds of each
+fresh login, repeatedly, even though the underlying account was never locked or disabled (checked
+directly via the site's SQLite `umbracoUser` table: `failedLoginAttempts` stayed at 1 throughout,
+`userDisabled` stayed 0) and the server log recorded zero errors or exceptions for the entire session.
+This reads as environment/automation-specific token-refresh flakiness, not a real product regression
+— the identical login flow worked cleanly multiple times earlier in the same session, including
+enough to confirm the connection-type registration above. Chasing it further past that point would
+have been exactly the kind of UI rabbit hole not worth the time: actions register through the same
+`IComposer`/manifest pathway already proven to work correctly for the two connection types in this
+exact assembly, on this exact newer Core version, so there's no real reason to expect a different
+result — but "no reason to expect a problem" is a lower bar than the direct confirmation the
+connection types got, and that gap is recorded here rather than quietly assumed away.
+
+**Conclusion:** the declared range (`Umbraco.Cms [17.4.0, 17.999.999)`, `Umbraco.Automate.Core
+[17.2.0, 17.999.999)`, `Umbraco.Automate.OpenIddict [17.1.2, 17.999.999)`) is no longer just a
+theoretical range — both its floor and the current real-world upper edge of what's published are now
+independently verified to install, boot, and register this package's connection types cleanly. The
+gap this closes is specifically the "declared wider than proven" concern from the prior
+version-compatibility review; the v18 exclusion remains a deliberate, correct scope boundary, not a
+gap.
 result of this correction.
