@@ -5,9 +5,15 @@
     <Authors>Umbraco</Authors>
     <Copyright>Copyright © Umbraco $([System.DateTime]::Today.ToString('yyyy'))</Copyright>
     <Product>Umbraco Automate Salesforce</Product>
-    <!-- Fill in once this package has a real home (standalone repo vs. folded into the
-         umbraco/Umbraco.Automate monorepo — see README "Repository home" note). -->
-    <!-- <PackageProjectUrl>https://github.com/umbraco/Umbraco.Automate/tree/main/Umbraco.Automate.Salesforce</PackageProjectUrl> -->
+    <!-- Umbraco.Automate.Slack's own PackageProjectUrl points at wherever its real current git
+         home is (a folder within the umbraco/Umbraco.Automate monorepo, since that's where it
+         actually lives) — mirroring that pattern, not Slack's literal URL: this repo's real
+         current home is standalone, so this points there. Update if/when that changes (e.g. if
+         this package is ever folded into the official monorepo, which is a separate decision
+         requiring Umbraco HQ's own acceptance via their contribution process — not something to
+         do unilaterally by moving files). -->
+    <PackageProjectUrl>https://github.com/ramirezja3/Umbraco.Salesforce</PackageProjectUrl>
+    <PackageIcon>logo-128.png</PackageIcon>
     <PackageTags>umbraco automate automation salesforce crm umbraco-marketplace</PackageTags>
     <NeutralLanguage>en-US</NeutralLanguage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -36,14 +42,15 @@
     <EnableStrictModeForCompatibleTfms>true</EnableStrictModeForCompatibleTfms>
   </PropertyGroup>
 
-  <!-- LICENSE now exists at the repo root and is packed, mirroring Umbraco.Automate.Slack's
-       Directory.Build.props (its path there is "..\LICENSE" because Slack's Directory.Build.props
-       lives one level down inside the monorepo; this repo's LICENSE is at the same level as this
-       file, hence no "..\"). PackageIcon is still pending a Salesforce-provider brand asset
-       (assets/logo-128.png) — add the <PackageIcon> property above and a matching <Content
-       Include> below once one exists. -->
+  <!-- LICENSE and the package icon are packed the same way Umbraco.Automate.Slack's
+       Directory.Build.props packs them (its paths there are "..\LICENSE" / "..\assets\logo-128.png"
+       because Slack's Directory.Build.props lives one level down inside the monorepo; this repo's
+       Directory.Build.props is at the repo root itself, hence no "..\"). The icon is a generic
+       CRM/contact-record motif in this ecosystem's shared navy/pink palette — deliberately not a
+       Salesforce logo, to avoid implying Salesforce endorsement or reproducing their trademark. -->
   <ItemGroup>
     <Content Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false" />
+    <Content Include="$(MSBuildThisFileDirectory)assets\logo-128.png" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 
   <PropertyGroup>

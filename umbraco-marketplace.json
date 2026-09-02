@@ -8,8 +8,8 @@
     },
     "Category": "Automation",
     "LicenseTypes": ["Free"],
-    "DocumentationUrl": "REPLACE_WITH_REAL_DOCS_URL_BEFORE_PUBLISHING",
-    "IssueTrackerUrl": "REPLACE_WITH_REAL_ISSUE_TRACKER_URL_BEFORE_PUBLISHING",
+    "DocumentationUrl": "https://github.com/ramirezja3/Umbraco.Salesforce#readme",
+    "IssueTrackerUrl": "https://github.com/ramirezja3/Umbraco.Salesforce/issues",
     "PackageType": "Package",
     "PackagesByAuthor": [
         "Umbraco.Forms",
