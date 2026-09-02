@@ -1,23 +1,16 @@
 {
     "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json",
     "AuthorDetails": {
-        "Name": "Umbraco HQ",
-        "Description": "Umbraco HQ",
-        "Url": "https://umbraco.com",
-        "ImageUrl": "https://avatars.githubusercontent.com/u/1419552?s=200&v=4"
+        "Name": "ramirezja3",
+        "Description": "ramirezja3",
+        "Url": "https://github.com/ramirezja3",
+        "ImageUrl": "https://github.com/ramirezja3.png"
     },
     "Category": "Automation",
     "LicenseTypes": ["Free"],
     "DocumentationUrl": "https://github.com/ramirezja3/Umbraco.Salesforce#readme",
     "IssueTrackerUrl": "https://github.com/ramirezja3/Umbraco.Salesforce/issues",
     "PackageType": "Package",
-    "PackagesByAuthor": [
-        "Umbraco.Forms",
-        "Umbraco.Workflow",
-        "Umbraco.Deploy.OnPrem",
-        "Umbraco.Commerce",
-        "Umbraco.Engage"
-    ],
     "RelatedPackages": [
         {
             "PackageId": "Umbraco.Automate",
