@@ -65,7 +65,7 @@ Add the Client ID and Client Secret from Step 1 to your configuration (`appsetti
 2. In the backoffice, go to **Automation → Connections → Create**.
 3. Choose **Salesforce** (production) or **Salesforce (Sandbox)**.
 4. Click **Authenticate with Salesforce** — you'll be redirected to Salesforce's own login/consent screen. Log in as a Salesforce user with API access and authorize the app.
-5. Back in the backoffice, click **Test connection** — you should see a success message naming your Salesforce organization ID and the connected username.
+5. **Click Save before clicking Test connection.** The "Connected" indicator turns green as soon as the OAuth popup completes, but **Test connection** resolves the connection record itself — if you click it before saving, you'll see "No Salesforce account has been authenticated for this connection" even though authentication succeeded. Save first, then **Test connection** — you should see a success message naming your Salesforce organization ID and the connected username.
 
 That's the entire setup. You can now build automations using the Salesforce actions — see [docs/actions.md](actions.md).
 

@@ -1022,5 +1022,23 @@ theoretical range — both its floor and the current real-world upper edge of wh
 independently verified to install, boot, and register this package's connection types cleanly. The
 gap this closes is specifically the "declared wider than proven" concern from the prior
 version-compatibility review; the v18 exclusion remains a deliberate, correct scope boundary, not a
+
+## 21. Closing the connection-editor save-ordering gap with a docs callout (2026-09-04)
+
+The "Connected turns green before Save, but Test connection fails until you Save first" UX gap
+recorded in §19 was left unfixed there pending confirmation it was actually confusing enough to
+document. Decided it is — it's the exact sequence every first-time implementer hits during Step 4
+of installation — so added a one-line callout to `docs/installation.md`'s Step 4 rather than
+leaving it as tacit tribal knowledge. No code change: this is still Core/editor save-ordering
+behavior, not a defect in this package, so the fix is documentation only, same conclusion as §19.
+
+The other open item from §20 — confirming the action picker lists all six actions on the newer
+Core version (17.6.2/17.3.0), which a login-session-loop in that pass's environment prevented
+finishing — remains open. Re-attempting it means standing up another throwaway demo site and
+driving the backoffice UI again for a check whose only job is to confirm the same
+`IComposer`/manifest registration path already proven twice (floor version in §17/§19, connection
+types on the newer version in §20) also register the action list. Leaving this as a recorded,
+accepted gap rather than re-running the same UI rabbit hole a third time on the strength of "no
+reason to expect a different result."
 gap.
 result of this correction.
