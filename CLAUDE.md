@@ -34,6 +34,23 @@ as real NuGet packages — no project references. Confirm that **Automation → 
 lists the Salesforce connection type, and that the action picker shows all six Salesforce
 actions, before publishing.
 
+### Publishing a release
+
+`.github/workflows/publish.yml` pushes to nuget.org via **Trusted Publishing** (OIDC) — there is no
+stored NuGet API key anywhere in this repo or its CI. It triggers only on a pushed version tag
+(`vX.Y.Z`), never on an ordinary push to `main`. Publishing a release is therefore just:
+
+```bash
+git tag -a vX.Y.Z -m "vX.Y.Z - <summary>"
+git push origin vX.Y.Z
+```
+
+That push is the actual "go live" action — it fires the workflow immediately. One-time setup this
+required on nuget.org (already done for this repo, needed again only if the policy is ever
+recreated): **Trusted Publishing** → add a policy for repository owner `ramirezja3`, repository
+`Umbraco.Salesforce`, workflow file `publish.yml`, scoped to the `Umbraco.Automate.Salesforce`
+package id.
+
 ### Local development setup
 
 This repo stands alone — unlike `Umbraco.Automate.Slack`, it isn't part of the `umbraco/Umbraco.Automate`

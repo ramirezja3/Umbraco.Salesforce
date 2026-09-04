@@ -1179,5 +1179,41 @@ still succeed with zero new warnings. Nothing else found: `docs/actions.md`, `do
 `docs/security.md`, `README.md`, `umbraco-marketplace-readme.md`, and both `CLAUDE.md` files were
 each read in full this pass and matched the current single-connection-type, six-action, no-triggers
 shape with no further corrections needed.
+
+## 25. Publishing via NuGet Trusted Publishing instead of a stored API key (2026-09-04)
+
+Asked directly, on nuget.org's own nudge ("API keys are not recommended"), whether to switch away
+from a plain API key before the first publish. Checked nuget.org's current Trusted Publishing docs
+(fetched live, not recalled from memory — this is exactly the kind of platform detail CLAUDE.md §13
+says to verify current rather than assume) rather than guess at the setup shape. Confirmed:
+GitHub Actions support is real and current, works via a policy on nuget.org (repo owner + repo +
+workflow **file name only**, e.g. `publish.yml` — not the full `.github/workflows/` path) that a
+CI job's OIDC token is checked against, exchanged for a NuGet API key valid for **1 hour**. No
+secret is ever stored in this repo or on nuget.org's side beyond that policy.
+
+Added `.github/workflows/publish.yml` — separate from the existing `build.yml` (which still only
+builds/tests/packs on every push/PR) — triggered **only** by pushing a version tag (`v*.*.*`),
+never automatically from a push to `main`. Deliberately tag-triggered rather than a manual
+`workflow_dispatch` button, by explicit choice: pushing the release tag *is* the go-live action,
+consistent with how every release so far in this repo has already worked (tag push = the moment
+that mattered), rather than adding a second separate manual step on top of tagging.
+
+**Real risk considered and avoided:** this repo's own workflow this whole session has been to
+delete-and-recreate the `v0.1.0` tag in place to keep it tracking the latest fixup commit (§15's
+"move the tag forward" pattern, done three times total across this build). Once `publish.yml`
+exists, doing that same tag-move-and-repush would immediately and for real publish to nuget.org —
+there is no dry-run, no confirmation step, no going back (nuget.org packages can be unlisted, never
+deleted). Adding the workflow file itself is safe (a plain commit to `main`, tags untouched, and no
+`v0.1.0` push happened in the same step) — but the *next* time the `v0.1.0` tag is touched, that is
+the real publish, not routine tag housekeeping, and needs to be treated as such rather than folded
+into an automatic "keep the tag in sync" habit.
+
+One-time setup this needs on nuget.org (a human action, not something scriptable from here): sign
+in → username → **Trusted Publishing** → add a policy with Repository Owner `ramirezja3`,
+Repository `Umbraco.Salesforce`, Workflow File `publish.yml`, scope glob `Umbraco.Automate.Salesforce`.
+Per nuget.org's own docs, the 7-day "pending activation" window they describe "usually happens with
+private GitHub repos" — this repo is public, so it's not expected here, but the docs don't promise
+it never applies to a public repo either; if the policy shows as pending after creation, that's
+expected per their own docs, not a sign something's misconfigured.
 gap.
 result of this correction.

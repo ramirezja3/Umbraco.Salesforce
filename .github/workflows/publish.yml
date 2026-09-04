@@ -1,0 +1,46 @@
+name: Publish to NuGet
+
+# Trusted Publishing (OIDC) — no stored API key. Requires a Trusted Publishing policy configured
+# on nuget.org for this exact repo + this workflow file (see docs/dev-notes.md). Triggered only
+# by pushing a version tag (vX.Y.Z) — never automatically on a push to main.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # required to request the OIDC token NuGet/login exchanges for a temp API key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # Same real (non-project-reference) pack used to verify a release before tagging it —
+      # see scripts/pack-release.ps1's own comments for why -SkipBuild must never be passed here.
+      - name: Pack
+        run: pwsh ./scripts/pack-release.ps1
+
+      # Requests a short-lived (1-hour) NuGet API key via OIDC — nothing stored, nothing to
+      # rotate. Fails closed if no Trusted Publishing policy matches this repo/workflow.
+      - name: NuGet login (OIDC -> temporary API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ramirezja3
+
+      # dotnet nuget push also pushes the co-located .snupkg symbol package automatically.
+      - name: NuGet push
+        run: >
+          dotnet nuget push artifacts/nupkg/Umbraco.Automate.Salesforce.*.nupkg
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
