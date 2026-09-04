@@ -1,8 +1,8 @@
 namespace Umbraco.Automate.Salesforce.Connection;
 
 /// <summary>
-/// Resolves an authenticated Salesforce OAuth credential (production or sandbox) down to a
-/// valid access token and the organization's instance URL, ready for API calls.
+/// Resolves an authenticated Salesforce OAuth credential down to a valid access token and the
+/// organization's instance URL, ready for API calls.
 /// </summary>
 public interface ISalesforceConnectionResolver
 {

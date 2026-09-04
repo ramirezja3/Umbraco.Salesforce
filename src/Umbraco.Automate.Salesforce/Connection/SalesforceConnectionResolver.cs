@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 using Umbraco.Automate.OpenIddict.Credentials;
 
 namespace Umbraco.Automate.Salesforce.Connection;
@@ -13,6 +14,7 @@ internal sealed class SalesforceConnectionResolver : ISalesforceConnectionResolv
     private static readonly TimeSpan RecentRefreshWindow = TimeSpan.FromSeconds(5);
 
     private readonly IOAuthCredentialsService _credentialsService;
+    private readonly ILogger<SalesforceConnectionResolver> _logger;
 
     // Registered as a singleton (see SalesforceComposer), so these instance-level collections are
     // effectively process-wide without needing to be static — one semaphore/cache entry per
@@ -25,9 +27,10 @@ internal sealed class SalesforceConnectionResolver : ISalesforceConnectionResolv
     // concurrent caller for the rest of the freshness window.
     private readonly ConcurrentDictionary<Guid, (DateTime RefreshedUtc, SalesforceConnectionContext Context)> _recentRefreshes = new();
 
-    public SalesforceConnectionResolver(IOAuthCredentialsService credentialsService)
+    public SalesforceConnectionResolver(IOAuthCredentialsService credentialsService, ILogger<SalesforceConnectionResolver> logger)
     {
         _credentialsService = credentialsService;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -105,11 +108,43 @@ internal sealed class SalesforceConnectionResolver : ISalesforceConnectionResolv
         // There is no Salesforce-specific persistence for this: AccountLabel already exists on
         // Umbraco.Automate.OpenIddict's credential entity and needs no schema change to reuse.
         if (string.IsNullOrEmpty(credentials?.AccountLabel)
-            || !Uri.TryCreate(credentials.AccountLabel, UriKind.Absolute, out var instanceUrl))
+            || !Uri.TryCreate(credentials.AccountLabel, UriKind.Absolute, out var instanceUrl)
+            || !IsTrustedSalesforceHost(instanceUrl))
         {
+            // A non-Salesforce (or non-HTTPS) instance_url should never reach here in normal
+            // operation — Salesforce's own token endpoint is the only source for AccountLabel
+            // (see ExtractInstanceUrl). This check exists purely as defense in depth: every
+            // action attaches the live Bearer access token to whatever host InstanceUrl resolves
+            // to (see SalesforceClient.SendAsync), so a corrupted, tampered-with, or otherwise
+            // untrustworthy stored value must never be used to build an authenticated outbound
+            // request — that would hand a real Salesforce access token to an arbitrary host.
+            _logger.LogWarning(
+                "Rejected untrusted Salesforce instance URL for credentials {CredentialsId} — expected an HTTPS *.salesforce.com or *.force.com host.",
+                credentialsId);
             return null;
         }
 
         return new SalesforceConnectionContext(credentialsId, accessToken, instanceUrl);
+    }
+
+    /// <summary>
+    /// Restricts which hosts this package will ever attach a live Salesforce Bearer token to.
+    /// Salesforce's documented instance URL hosts are HTTPS subdomains of <c>salesforce.com</c>
+    /// (e.g. <c>yourdomain.my.salesforce.com</c>, legacy pod hosts like <c>na1.salesforce.com</c>)
+    /// or <c>force.com</c> (Experience Cloud / Force.com sites). Anything else is rejected rather
+    /// than trusted.
+    /// </summary>
+    private static bool IsTrustedSalesforceHost(Uri instanceUrl)
+    {
+        if (instanceUrl.Scheme != Uri.UriSchemeHttps)
+        {
+            return false;
+        }
+
+        var host = instanceUrl.Host;
+        return host.Equals("salesforce.com", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".salesforce.com", StringComparison.OrdinalIgnoreCase)
+            || host.Equals("force.com", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".force.com", StringComparison.OrdinalIgnoreCase);
     }
 }

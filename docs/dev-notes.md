@@ -1070,5 +1070,65 @@ NuGet yet. If a sandbox connection type is wanted again later, that's a new, exp
 decision to make from scratch — not something to infer back in from this entry or from the
 technical rationale in §0a, which explains *how* two types would have to be built if ever
 requested again, not that they should be.
+
+## 23. Enterprise security pass — instance_url trust boundary was unchecked, fixed (2026-09-04)
+
+Asked directly to get this package to a state confidently installable into a security-sensitive
+enterprise Umbraco project, not just "green tests." Read through every security-relevant file
+(`SalesforceClient`, `SalesforceConnectionResolver`, `SalesforceOAuthHandlers`, `SalesforceComposer`,
+`SalesforceErrorMapper`, all six actions) rather than trusting `docs/security.md`'s existing prose,
+which itself hadn't been checked against the code since it was originally written.
+
+**Real finding:** `SalesforceConnectionResolver.ResolveCoreAsync` took `credentials.AccountLabel`
+(the captured `instance_url`, see `SalesforceOAuthHandlers.ExtractInstanceUrl`) through
+`Uri.TryCreate(..., UriKind.Absolute, ...)` and handed the result straight to
+`SalesforceClient.SendAsync`, which builds every outbound request as
+`new Uri(connection.InstanceUrl, relativePath)` and attaches the live Bearer access token via
+`Authorization: Bearer {token}`. Nothing checked that the parsed URI was actually HTTPS, or
+actually pointed at Salesforce. Under normal operation `instance_url` only ever comes from
+Salesforce's own token endpoint response, so this isn't an exploited weakness — but it's exactly
+the kind of missing defense-in-depth check a real security review flags: nothing in this package's
+own code stopped a corrupted, tampered, or unexpectedly-shaped stored value from becoming the
+target of an outbound call carrying a live production access token.
+
+**Fix:** `SalesforceConnectionResolver` now validates the resolved instance URL is HTTPS and its
+host is `salesforce.com`/`*.salesforce.com` or `force.com`/`*.force.com` before ever returning a
+`SalesforceConnectionContext` — anything else is treated the same as "no instance URL captured"
+(a warning-logged, non-throwing failure that surfaces as "reconnect this connection", not a raw
+exception). Added `ILogger<SalesforceConnectionResolver>` to the constructor for the warning.
+8 new tests in `SalesforceConnectionResolverTests` (5 rejected hosts/schemes including a suffix
+trick — `salesforce.com.attacker.example.com` — and a lookalike domain, 3 accepted real hosts).
+Full suite green (68/68). Documented in `docs/security.md` as a new "Trusted instance URL"
+section plus a threat-model table row.
+
+**Checked and found clean, not just assumed:** no TLS-bypass code anywhere (`grep` for
+`ServerCertificateCustomValidationCallback`/`DangerousAccept*`/`ServicePointManager` across `src/`
+returned nothing); every action places bound values into a typed `Dictionary<string, object?>`
+serialized via `JsonContent.Create` (no string-concatenated JSON, no SOQL anywhere in the six
+shipped actions); the two actions that splice a record Id into a URL path
+(`CreateOrUpdateContactAction`, `UpdateOpportunityStageAction`) both already use
+`Uri.EscapeDataString` on it, which also closes off a path-traversal attempt via an encoded `/`
+(a `%2F` in a path segment doesn't get re-interpreted as a path separator); `SalesforceErrorMapper`
+and every `_logger.Log*` call in `SalesforceClient` only ever surface Salesforce's own response
+body/error fields or structured non-secret context (method, path, instance host, credentials Id) —
+never the Authorization header, access token, or client secret; the full git history was scanned
+for anything that looks like a committed real token/secret (none found — `.env` has never been
+tracked); `LiveSalesforceCredentials.TryLoad()` only ever reads from a gitignored local file or an
+env var pointing at one, and fails closed (returns `null`, tests no-op) rather than throwing on a
+malformed file.
+
+**Checked and deliberately not changed:** `dotnet list package --vulnerable --include-transitive`
+against this package's real (non-project-reference) dependency graph surfaces several advisories
+(`MessagePack`, `Microsoft.OpenApi`, `OpenTelemetry.Api`, `SQLitePCLRaw.lib.e_sqlite3`,
+`System.Security.Cryptography.Xml`) — all transitive dependencies of `Umbraco.Automate.Core`/
+`Umbraco.Automate.OpenIddict` themselves, not anything this package references directly. Did not
+pin/override any of them: that's the upstream packages' dependency graph to patch, and silently
+overriding a transitive version from a downstream provider package is exactly the kind of
+unprompted dependency change this project's standing policy rules out. Documented honestly in
+`docs/security.md`'s new "Dependency vulnerabilities" section instead of leaving it unmentioned.
+PKCE wasn't independently re-verified here — no code in this package disables it, and OpenIddict
+Client WebIntegration's own Salesforce provider profile is the thing that would need to be read to
+confirm it's on by default; treated as inherited-safe-default given nothing here overrides it, not
+independently re-confirmed by decompilation the way an earlier pass did for grant types (§18).
 gap.
 result of this correction.

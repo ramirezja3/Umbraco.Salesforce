@@ -10,6 +10,10 @@ The Salesforce Connected App's Client Secret lives only in configuration (`appse
 
 Every action in this package targets a fixed, named Salesforce object (Lead, Contact, Opportunity, CampaignMember, Task) through named, typed fields placed into a structured JSON request body — never a free-text object name, and no raw SOQL anywhere in this package's surface. There is no injection surface to defend against: a bound value (e.g. `${ trigger.Email }`) becomes one JSON field's value, never text concatenated into a query or path.
 
+## Trusted instance URL (SSRF / token-relay defense)
+
+Every Salesforce API call this package makes attaches the connection's live OAuth Bearer access token to a request built against `instance_url` — the organization's API base, captured from Salesforce's own token response at authentication time and stored in the credential record (see Secrets and credentials above). `ISalesforceConnectionResolver` validates, on every resolution, that this stored value is an HTTPS `*.salesforce.com` or `*.force.com` host before ever handing it back to an action or the shared REST client — a connection whose stored instance URL fails that check is treated as unresolvable (the same "reconnect this connection" failure path as an expired token) rather than trusted. This is defense in depth, not a response to an exploited weakness: under normal operation `instance_url` only ever comes from Salesforce's own token endpoint, but nothing this package's own code controls should ever be able to redirect a live Salesforce access token to an arbitrary host purely because a stored value happened to parse as *some* URL.
+
 ## Rate limiting and abuse
 
 Every outbound call goes through a shared client that backs off on Salesforce's `REQUEST_LIMIT_EXCEEDED` and HTTP 429 responses, honoring Salesforce's `Retry-After` header when present and falling back to exponential backoff with jitter otherwise, bounded by a configurable maximum attempt count. This prevents one runaway automation from immediately exhausting the organization's daily API allocation on repeated hammering, though it cannot prevent a poorly designed automation from eventually using up a real daily quota — that's a design/monitoring concern for the implementer, not something a client library can fully solve.
@@ -32,9 +36,14 @@ This package keeps no persistence or local state of its own at all — every act
 |---|---|
 | OAuth token theft | Tokens encrypted at rest via the platform's Data Protection mechanism; never logged; never exposed in the Run history UI. |
 | Injection | Not applicable — every action writes named, typed fields to a fixed object; there is no free-text object name or raw SOQL anywhere in this package (see Injection above). |
+| Token relay to an untrusted host via a corrupted/spoofed instance URL | `ISalesforceConnectionResolver` rejects any stored instance URL that isn't an HTTPS `*.salesforce.com`/`*.force.com` host before it's ever used to build an authenticated request (see Trusted instance URL above). |
 | Session/credential compromise via a stale or leaked token | Encrypted storage; automatic refresh-and-retry on detected session staleness; a clear "reconnect" path (requiring the implementer's own interactive login) when a refresh token itself is no longer valid. |
 | Over-broad OAuth scopes | The OAuth registration requests only `api` and `refresh_token` by default; an implementer can broaden this via `Umbraco:Automate:Providers:Salesforce:Scopes` if a future need arises, but nothing beyond the default is requested unless configured. |
 | A runaway automation exhausting the org's API allocation | Backoff-with-jitter and a bounded retry count on rate-limit responses; ultimately a monitoring/design responsibility of whoever builds the automation, not something a client library alone can fully prevent. |
+
+## Dependency vulnerabilities
+
+`dotnet list package --vulnerable` against this package's own real (non-project-reference) dependency graph reports several known advisories — all in transitive dependencies of `Umbraco.Automate.Core`/`Umbraco.Automate.OpenIddict` themselves (`MessagePack`, `Microsoft.OpenApi`, `OpenTelemetry.Api`, `SQLitePCLRaw.lib.e_sqlite3`, `System.Security.Cryptography.Xml`), not anything this package references or calls directly. This package does not pin or override those transitive versions — that is a decision for whoever maintains `Umbraco.Automate.Core`/`Umbraco.Automate.OpenIddict`'s own dependency pins, not something to silently override from a downstream provider package. Before installing into a security-sensitive environment, re-run `dotnet list package --vulnerable --include-transitive` against the exact `Umbraco.Automate.Core`/`Umbraco.Automate.OpenIddict` versions actually resolved, since the set of advisories shifts as those packages release new versions.
 
 ## What this package does *not* do
 
