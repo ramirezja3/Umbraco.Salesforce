@@ -9,11 +9,8 @@ using Umbraco.Cms.Core.DependencyInjection;
 namespace Umbraco.Automate.Salesforce.Configuration;
 
 /// <summary>
-/// Registers two Salesforce OAuth provider registrations with OpenIddict Client
-/// WebIntegration — one for production (<c>login.salesforce.com</c>), one for sandbox
-/// (<c>test.salesforce.com</c>) — plus this package's own services. Two registrations are
-/// needed because a connection's OAuth issuer is fixed at startup per provider name; see
-/// <see cref="Connection.SalesforceConnectionType"/> and docs/dev-notes.md §0a.
+/// Registers the Salesforce OAuth provider registration with OpenIddict Client WebIntegration
+/// (<c>login.salesforce.com</c>) plus this package's own services.
 /// </summary>
 public sealed class SalesforceComposer : IComposer
 {
@@ -53,15 +50,6 @@ public sealed class SalesforceComposer : IComposer
                 {
                     salesforce.SetIssuer(new Uri("https://login.salesforce.com/"));
                     salesforce.AddScopes(ResolveScopes(builder.Config, "Salesforce"));
-                    salesforce.AddGrantTypes(OpenIddictConstants.GrantTypes.AuthorizationCode, OpenIddictConstants.GrantTypes.RefreshToken);
-                });
-
-                options.UseWebProviders().AddSalesforce(salesforce =>
-                {
-                    salesforce.SetProviderName("SalesforceSandbox");
-                    salesforce.SetRegistrationId("SalesforceSandbox");
-                    salesforce.SetIssuer(new Uri("https://test.salesforce.com/"));
-                    salesforce.AddScopes(ResolveScopes(builder.Config, "SalesforceSandbox"));
                     salesforce.AddGrantTypes(OpenIddictConstants.GrantTypes.AuthorizationCode, OpenIddictConstants.GrantTypes.RefreshToken);
                 });
 

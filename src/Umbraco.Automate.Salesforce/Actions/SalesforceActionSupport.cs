@@ -31,7 +31,7 @@ internal static class SalesforceActionSupport
                 StepRunErrorCategory.Validation);
         }
 
-        if (connection.Settings is not ISalesforceConnectionSettings settings
+        if (connection.Settings is not SalesforceConnectionSettings settings
             || settings.OAuthCredentialsId is not { } id
             || id == Guid.Empty)
         {

@@ -3,8 +3,8 @@ namespace Umbraco.Automate.Salesforce.Configuration;
 /// <summary>
 /// Options for calling the Salesforce REST API, bound from
 /// <c>Umbraco:Automate:Salesforce</c> (distinct from the per-provider OAuth app credentials at
-/// <c>Umbraco:Automate:Providers:Salesforce</c> / <c>:SalesforceSandbox</c>, which
-/// <c>Umbraco.Automate.OpenIddict</c> binds generically).
+/// <c>Umbraco:Automate:Providers:Salesforce</c>, which <c>Umbraco.Automate.OpenIddict</c> binds
+/// generically).
 /// </summary>
 public sealed class SalesforceApiOptions
 {

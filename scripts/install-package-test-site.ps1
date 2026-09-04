@@ -105,7 +105,7 @@ Write-Host "Site location: $sitePath" -ForegroundColor Gray
 Write-Host "  1. Add real Salesforce Connected App ClientId/ClientSecret to appsettings.Development.json" -ForegroundColor Yellow
 Write-Host "  2. cd $sitePath && dotnet run --urls https://localhost:44399" -ForegroundColor Gray
 Write-Host "  3. Open https://localhost:44399/umbraco (admin@example.com / password1234)" -ForegroundColor Gray
-Write-Host "  4. Automation > Connections > Create — confirm Salesforce / Salesforce (Sandbox) both appear" -ForegroundColor Gray
+Write-Host "  4. Automation > Connections > Create — confirm Salesforce appears" -ForegroundColor Gray
 Write-Host "  5. Automation > (any automation) > add a step — confirm all 6 Salesforce actions appear, zero triggers" -ForegroundColor Gray
 
 Pop-Location

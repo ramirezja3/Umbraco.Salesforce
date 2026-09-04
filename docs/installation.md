@@ -23,8 +23,6 @@ Before installing this package, you need:
 5. Enable **Require Proof Key for Code Exchange (PKCE)** if your Salesforce edition offers it.
 6. Save, then note the **Consumer Key** (Client ID) and **Consumer Secret** (Client Secret) — Salesforce may take a few minutes to activate a newly created Connected App.
 
-If you're connecting to a **sandbox** org instead of production, everything above is identical — just remember which one you're configuring, since sandbox and production use separate connection types (see below).
-
 ## Step 2: Add the package
 
 ```bash
@@ -57,13 +55,13 @@ Add the Client ID and Client Secret from Step 1 to your configuration (`appsetti
 
 `ApiVersion` is optional — it defaults to a recent stable Salesforce REST API version. Only change it if you have a specific reason to pin an older or newer one.
 
-**Connecting to a sandbox org?** The same `ClientId`/`ClientSecret` section is shared by both the production and sandbox connection types — Salesforce sandboxes typically use their own Connected App anyway (sandboxes don't inherit production Connected Apps automatically), so if you need both, register a second Connected App in the sandbox and point the `Salesforce` connection type at production, the `Salesforce (Sandbox)` connection type at the sandbox — see the note on multiple connections below.
+> This package's connection type authenticates against `login.salesforce.com` only — there is no separate sandbox (`test.salesforce.com`) connection type. Sandbox orgs aren't supported by this package.
 
 ## Step 4: Restart and connect
 
 1. Restart the site.
 2. In the backoffice, go to **Automation → Connections → Create**.
-3. Choose **Salesforce** (production) or **Salesforce (Sandbox)**.
+3. Choose **Salesforce**.
 4. Click **Authenticate with Salesforce** — you'll be redirected to Salesforce's own login/consent screen. Log in as a Salesforce user with API access and authorize the app.
 5. **Click Save before clicking Test connection.** The "Connected" indicator turns green as soon as the OAuth popup completes, but **Test connection** resolves the connection record itself — if you click it before saving, you'll see "No Salesforce account has been authenticated for this connection" even though authentication succeeded. Save first, then **Test connection** — you should see a success message naming your Salesforce organization ID and the connected username.
 
@@ -71,7 +69,7 @@ That's the entire setup. You can now build automations using the Salesforce acti
 
 ## Multiple connections / multiple orgs
 
-You can create more than one Salesforce connection (e.g. a production org and a sandbox, or connections for multiple customer orgs in a multi-tenant setup) — each is authenticated independently and scoped to workspaces the same way other Automate connections are. Every action's connection picker lets you choose which one a given step uses.
+You can create more than one Salesforce connection (e.g. connections for multiple customer orgs in a multi-tenant setup) — each is authenticated independently and scoped to workspaces the same way other Automate connections are. Every action's connection picker lets you choose which one a given step uses.
 
 ## Adding a scope later
 

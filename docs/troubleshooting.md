@@ -69,7 +69,7 @@ This is expected if the workspace the automation belongs to has no Salesforce co
 **Allowed Connections** — Umbraco Automate hides an action from the step picker entirely (not
 greyed out — absent) unless the workspace allows at least one connection of that action's required
 connection type. Go to **Automation → Workspaces → (your workspace) → Allowed Connections** and
-add your Salesforce (or Salesforce Sandbox) connection — it doesn't need to be authenticated yet,
+add your Salesforce connection — it doesn't need to be authenticated yet,
 just present — and the "Salesforce" group of all 6 actions will appear in the step picker. This is
 a general Umbraco Automate platform behavior, not something specific to this package, but it's an
 easy trap to read as "the package didn't install correctly."

@@ -31,7 +31,7 @@ not that the *package* does. Before publishing a release:
 The second script creates a genuinely separate Umbraco 17 site under `demos/v17/` and installs
 `Umbraco.Automate` (from nuget.org) and `Umbraco.Automate.Salesforce` (from the local pack output)
 as real NuGet packages — no project references. Confirm that **Automation → Connections → Create**
-lists both Salesforce connection types, and that the action picker shows all six Salesforce
+lists the Salesforce connection type, and that the action picker shows all six Salesforce
 actions, before publishing.
 
 ### Local development setup
@@ -62,7 +62,7 @@ Without that sibling checkout, the build still works — it falls back to the
 
 ## Architecture Overview
 
-Umbraco.Automate.Salesforce is a provider package that adds Salesforce connectivity to Umbraco Automate. It uses `Umbraco.Automate.OpenIddict` for OAuth authentication and provides Salesforce connection types and six actions — no triggers (removed in v2; see `docs/dev-notes.md`). Each action targets one fixed, named Salesforce object with named fields (no generic "pick an object API name" action — see `docs/dev-notes.md`'s most recent entry for why). Every action calls the Salesforce REST API directly and keeps no local state, so this package needs no persistence of its own — it's a single Razor SDK RCL, the same shape as `Umbraco.Automate.Slack`, not split the way `Umbraco.Automate.OpenIddict` is.
+Umbraco.Automate.Salesforce is a provider package that adds Salesforce connectivity to Umbraco Automate. It uses `Umbraco.Automate.OpenIddict` for OAuth authentication and provides a Salesforce connection type and six actions — no triggers (removed in v2; see `docs/dev-notes.md`). Each action targets one fixed, named Salesforce object with named fields (no generic "pick an object API name" action — see `docs/dev-notes.md`'s most recent entry for why). Every action calls the Salesforce REST API directly and keeps no local state, so this package needs no persistence of its own — it's a single Razor SDK RCL, the same shape as `Umbraco.Automate.Slack`, not split the way `Umbraco.Automate.OpenIddict` is.
 
 ### Project Structure
 
@@ -78,8 +78,8 @@ Umbraco.Automate.Salesforce/
 
 ### How It Works
 
-1. `SalesforceComposer` registers two OpenIddict Client WebIntegration registrations — `Salesforce` (production, `login.salesforce.com`) and `SalesforceSandbox` (`test.salesforce.com`) — plus this package's own services.
-2. `SalesforceConnectionType` / `SalesforceSandboxConnectionType` define the two connection types using `OAuthConnectionTypeBase`. Two types exist (not one, parameterized) because an OpenIddict Client registration's issuer is fixed per provider name at startup.
+1. `SalesforceComposer` registers one OpenIddict Client WebIntegration registration — `Salesforce` (`login.salesforce.com`) — plus this package's own services. No sandbox (`test.salesforce.com`) connection type is shipped.
+2. `SalesforceConnectionType` defines the connection type using `OAuthConnectionTypeBase`.
 3. `SalesforceConnectionSettings` holds the `OAuthCredentialsId` linking to stored tokens; the organization's `instance_url` (Salesforce's non-standard OAuth token-response field) is stashed in the credential's generic `AccountLabel` column rather than a new table.
 4. Actions (Create Lead, Create/Update Contact, Create Opportunity, Update Opportunity Stage, Add to Campaign, Log Engagement Activity) resolve a live access token + instance URL via `ISalesforceConnectionResolver` and call the Salesforce REST API through `ISalesforceClient`, which handles rate-limit backoff (capped by `MaxRetryDelay`), network-level failures, and a stale-session refresh-and-retry-once.
 
@@ -95,10 +95,6 @@ Provider credentials are configured via `appsettings.json`:
         "Salesforce": {
           "ClientId": "your-connected-app-consumer-key",
           "ClientSecret": "your-connected-app-consumer-secret"
-        },
-        "SalesforceSandbox": {
-          "ClientId": "your-connected-app-consumer-key",
-          "ClientSecret": "your-connected-app-consumer-secret"
         }
       },
       "Salesforce": {
@@ -109,7 +105,7 @@ Provider credentials are configured via `appsettings.json`:
 }
 ```
 
-`Umbraco:Automate:Providers:Salesforce`/`:SalesforceSandbox` are the OAuth app credentials (bound generically by `Umbraco.Automate.OpenIddict`, including their `Scopes` array — see `SalesforceComposer.ResolveScopes`); `Umbraco:Automate:Salesforce` is this package's own REST API behavior (API version, query row cap, retry/backoff — see `SalesforceApiOptions`).
+`Umbraco:Automate:Providers:Salesforce` is the OAuth app credentials (bound generically by `Umbraco.Automate.OpenIddict`, including its `Scopes` array — see `SalesforceComposer.ResolveScopes`); `Umbraco:Automate:Salesforce` is this package's own REST API behavior (API version, query row cap, retry/backoff — see `SalesforceApiOptions`).
 
 ### Project Layout
 

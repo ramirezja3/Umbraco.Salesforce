@@ -1,9 +1,9 @@
 using Umbraco.Automate.OpenIddict.Providers;
 
 // Schema wrapper consumed by the JsonSchemaGenerate MSBuild task at build time.
-// Describes the appsettings.json shape below Umbraco:Automate:Providers:Salesforce /
-// :SalesforceSandbox and Umbraco:Automate:Salesforce so tooling can give editors
-// IntelliSense against appsettings-schema.Umbraco.Automate.Salesforce.json — mirrors
+// Describes the appsettings.json shape below Umbraco:Automate:Providers:Salesforce and
+// Umbraco:Automate:Salesforce so tooling can give editors IntelliSense against
+// appsettings-schema.Umbraco.Automate.Salesforce.json — mirrors
 // Umbraco.Automate.Slack's UmbracoAutomateSlackSchema.cs.
 internal sealed class UmbracoAutomateSalesforceSchema
 {
@@ -36,16 +36,10 @@ internal sealed class UmbracoAutomateSalesforceSchema
     public sealed class ProvidersDefinition
     {
         /// <summary>
-        /// Salesforce production OAuth app credentials and scope configuration
+        /// Salesforce OAuth app credentials and scope configuration
         /// (issuer <c>https://login.salesforce.com/</c>).
         /// </summary>
         public required OAuthProviderConfiguration Salesforce { get; set; }
-
-        /// <summary>
-        /// Salesforce sandbox OAuth app credentials and scope configuration
-        /// (issuer <c>https://test.salesforce.com/</c>).
-        /// </summary>
-        public required OAuthProviderConfiguration SalesforceSandbox { get; set; }
     }
 
     /// <summary>

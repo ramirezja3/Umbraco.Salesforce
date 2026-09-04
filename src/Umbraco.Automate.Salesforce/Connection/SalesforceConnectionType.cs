@@ -7,17 +7,10 @@ using Umbraco.Automate.Salesforce.Api;
 namespace Umbraco.Automate.Salesforce.Connection;
 
 /// <summary>
-/// Connection type for a production Salesforce organization (authenticates against
+/// Connection type for a Salesforce organization (authenticates against
 /// <c>login.salesforce.com</c>), using OAuth via OpenIddict WebIntegration.
 /// </summary>
-/// <remarks>
-/// See <see cref="SalesforceSandboxConnectionType"/> for the sandbox equivalent. These are two
-/// separate connection types — not one type with an environment field — because OpenIddict
-/// Client registrations (and therefore each one's authorization/token endpoint) are fixed at
-/// startup from configuration; a single connection type has no way to redirect its OAuth
-/// challenge to a different issuer per connection instance. See docs/dev-notes.md §0a.
-/// </remarks>
-[ConnectionType("salesforce", "Salesforce", Group = "Salesforce", Icon = "icon-cloud", Description = "Connect to a Salesforce production organization")]
+[ConnectionType("salesforce", "Salesforce", Group = "Salesforce", Icon = "icon-cloud", Description = "Connect to a Salesforce organization")]
 public sealed class SalesforceConnectionType : OAuthConnectionTypeBase<SalesforceConnectionSettings>
 {
     private readonly ISalesforceConnectionResolver _connectionResolver;

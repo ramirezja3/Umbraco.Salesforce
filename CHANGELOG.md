@@ -15,10 +15,10 @@ Initial public preview.
 
 ### Added
 
-- Two Salesforce connection types — `Salesforce` (production, `login.salesforce.com`) and
-  `Salesforce (Sandbox)` (`test.salesforce.com`) — authenticated via OAuth (Authorization Code +
-  PKCE) through `Umbraco.Automate.OpenIddict`. Tokens are encrypted at rest using the same Data
-  Protection mechanism Core already uses for other providers' credentials.
+- A Salesforce connection type (`login.salesforce.com`), authenticated via OAuth (Authorization
+  Code + PKCE) through `Umbraco.Automate.OpenIddict`. Tokens are encrypted at rest using the same
+  Data Protection mechanism Core already uses for other providers' credentials. No sandbox
+  (`test.salesforce.com`) connection type is shipped.
 - Six actions: Create Lead, Create/Update Contact, Create Opportunity, Update Opportunity Stage,
   Add to Campaign, Log Engagement Activity. Each targets one fixed, named Salesforce object
   through typed fields and returns the resulting record Id and success/failure status.

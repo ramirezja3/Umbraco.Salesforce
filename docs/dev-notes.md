@@ -1040,5 +1040,35 @@ driving the backoffice UI again for a check whose only job is to confirm the sam
 types on the newer version in §20) also register the action list. Leaving this as a recorded,
 accepted gap rather than re-running the same UI rabbit hole a third time on the strength of "no
 reason to expect a different result."
+
+## 22. Sandbox connection type removed — production-only, by explicit human decision (2026-09-04)
+
+Every prior entry in this file (§0a, §14–§20) treated shipping two connection types — `Salesforce`
+(production, `login.salesforce.com`) and `SalesforceSandbox` (`test.salesforce.com`) — as settled,
+non-negotiable scope, because an OpenIddict Client registration's issuer is fixed per provider
+name at startup and can't vary per connection instance. That technical constraint is still true.
+What changed is the scope decision sitting on top of it: asked directly why a sandbox connection
+type existed, the answer was "just the one connection type" — a deliberate reduction, not a bug
+report, made after the v0.1.0 tag had already been pushed publicly (though never published to
+NuGet, so nothing outside this repo had consumed it as a real package).
+
+Removed: `SalesforceSandboxConnectionType`, `SalesforceSandboxConnectionSettings`, the second
+OpenIddict WebIntegration registration in `SalesforceComposer` (`test.salesforce.com`, provider
+name `SalesforceSandbox`), the `SalesforceSandbox` entry in `UmbracoAutomateSalesforceSchema`'s
+`ProvidersDefinition`, and the now single-implementation `ISalesforceConnectionSettings`
+interface — `SalesforceActionSupport.TryGetCredentialsId` checks `SalesforceConnectionSettings`
+directly instead, since introducing an abstraction for one implementer is the wrong direction now.
+Build and the full 60-test unit suite both stayed green after the removal (only one test —
+`SalesforceComposerTests.ResolveScopes_ReadsPerProviderName_...` — needed a rename, from asserting
+sandbox-vs-production scope isolation to asserting isolation between "Salesforce" and an arbitrary
+other provider name, since `ResolveScopes` itself is still a generic per-provider-name lookup).
+
+Since the v0.1.0 tag and its CHANGELOG entry had already gone out describing two connection types,
+the tag was moved forward (deleted and recreated against the corrected commit) rather than left
+wrong or bumped to a new patch version — safe specifically because nothing had consumed it from
+NuGet yet. If a sandbox connection type is wanted again later, that's a new, explicit scope
+decision to make from scratch — not something to infer back in from this entry or from the
+technical rationale in §0a, which explains *how* two types would have to be built if ever
+requested again, not that they should be.
 gap.
 result of this correction.

@@ -44,15 +44,15 @@ public class SalesforceComposerTests
     }
 
     [Fact]
-    public void ResolveScopes_ReadsPerProviderName_SandboxDoesNotSeeProductionScopes()
+    public void ResolveScopes_ReadsPerProviderName_OtherProviderDoesNotSeeSalesforceScopes()
     {
         var config = ConfigWith(
             new("Umbraco:Automate:Providers:Salesforce:Scopes:0", "api"),
             new("Umbraco:Automate:Providers:Salesforce:Scopes:1", "refresh_token"),
             new("Umbraco:Automate:Providers:Salesforce:Scopes:2", "chatter_api"));
 
-        var sandboxScopes = SalesforceComposer.ResolveScopes(config, "SalesforceSandbox");
+        var otherScopes = SalesforceComposer.ResolveScopes(config, "SomeOtherProvider");
 
-        sandboxScopes.ShouldBe(["api", "refresh_token"]);
+        otherScopes.ShouldBe(["api", "refresh_token"]);
     }
 }
