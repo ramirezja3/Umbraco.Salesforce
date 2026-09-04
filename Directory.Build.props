@@ -12,6 +12,12 @@
          requiring Umbraco HQ's own acceptance via their contribution process — not something to
          do unilaterally by moving files). -->
     <PackageProjectUrl>https://github.com/ramirezja3/Umbraco.Salesforce</PackageProjectUrl>
+    <!-- PackageLicenseExpression is what actually produces the nuspec's <license> element —
+         bundling the LICENSE file as Content (below) alone does not; nuget.org's own validator
+         flags "License missing" without this even when the file is physically in the package.
+         MIT is a standard SPDX identifier, so an expression is used rather than
+         PackageLicenseFile (the two are mutually exclusive — only one may be set). -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>logo-128.png</PackageIcon>
     <PackageTags>umbraco automate automation salesforce crm umbraco-marketplace</PackageTags>
     <NeutralLanguage>en-US</NeutralLanguage>
