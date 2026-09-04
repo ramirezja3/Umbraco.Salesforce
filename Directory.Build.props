@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Authors>ramirezja3</Authors>
     <Copyright>Copyright © ramirezja3 $([System.DateTime]::Today.ToString('yyyy'))</Copyright>
-    <Product>Automate Salesforce Connector</Product>
+    <Product>Umbraco Community Automate Salesforce</Product>
     <!-- Umbraco.Automate.Slack's own PackageProjectUrl points at wherever its real current git
          home is (a folder within the umbraco/Umbraco.Automate monorepo, since that's where it
          actually lives) — mirroring that pattern, not Slack's literal URL: this repo's real

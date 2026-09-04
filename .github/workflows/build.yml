@@ -28,7 +28,7 @@ jobs:
       # LiveSalesforce/LiveSalesforceCredentials.cs) so only the unit suite runs here.
       - name: Unit tests
         run: >
-          dotnet test tests/Automate.Salesforce.Connector.Tests.Unit/Automate.Salesforce.Connector.Tests.Unit.csproj
+          dotnet test tests/Umbraco.Community.Automate.Salesforce.Tests.Unit/Umbraco.Community.Automate.Salesforce.Tests.Unit.csproj
           --configuration Release --logger "trx;LogFileName=unit-tests.trx"
 
       # Builds again with -p:UseProjectReferences=false explicitly (belt-and-suspenders even

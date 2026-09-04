@@ -1,15 +1,15 @@
-﻿# Creates a fresh Umbraco 17 site and installs Umbraco.Automate + Automate.Salesforce.Connector
+﻿# Creates a fresh Umbraco 17 site and installs Umbraco.Automate + Umbraco.Community.Automate.Salesforce
 # from the locally packed .nupkg files (see scripts/pack-release.ps1) plus nuget.org for
 # Umbraco.Automate's own dependencies. This is the real "can an implementer actually install
 # this from NuGet" check — everything else in this repo up to now (the demo site under
-# demos/v17/Automate.Salesforce.Connector.DemoSite) builds via ProjectReference to a sibling
+# demos/v17/Umbraco.Community.Automate.Salesforce.DemoSite) builds via ProjectReference to a sibling
 # monorepo checkout, which proves the code works but not that the package does.
 #
 # Mirrors the real monorepo's scripts/install-package-test-site.ps1, adapted to install from
 # a local folder feed (this package isn't on any public feed yet) instead of MyGet/nuget.org.
 
 param(
-    [string]$SiteName = "Automate.Salesforce.Connector.PackageTestSite",
+    [string]$SiteName = "Umbraco.Community.Automate.Salesforce.PackageTestSite",
     [string]$LocalFeedPath = "artifacts/nupkg",
     [switch]$Force,
     [switch]$SkipPack
@@ -25,18 +25,18 @@ if (-not $SkipPack) {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
-$nupkg = Get-ChildItem $LocalFeedPath -Filter "Automate.Salesforce.Connector.*.nupkg" |
+$nupkg = Get-ChildItem $LocalFeedPath -Filter "Umbraco.Community.Automate.Salesforce.*.nupkg" |
     Select-Object -First 1
 if (-not $nupkg) {
-    Write-Host "ERROR: No Automate.Salesforce.Connector package found in $LocalFeedPath — run pack-release.ps1 first." -ForegroundColor Red
+    Write-Host "ERROR: No Umbraco.Community.Automate.Salesforce package found in $LocalFeedPath — run pack-release.ps1 first." -ForegroundColor Red
     exit 1
 }
-if ($nupkg.Name -notmatch "^Automate\.Salesforce\.Connector\.(.+)\.nupkg$") {
+if ($nupkg.Name -notmatch "^Umbraco\.Community\.Automate\.Salesforce\.(.+)\.nupkg$") {
     Write-Host "ERROR: Could not parse version from $($nupkg.Name)" -ForegroundColor Red
     exit 1
 }
 $SalesforceVersion = $matches[1]
-Write-Host "Using Automate.Salesforce.Connector version: $SalesforceVersion" -ForegroundColor Gray
+Write-Host "Using Umbraco.Community.Automate.Salesforce version: $SalesforceVersion" -ForegroundColor Gray
 
 $sitePath = "demos/v17/$SiteName"
 if ((Test-Path $sitePath) -and -not $Force) {
@@ -68,7 +68,7 @@ $nugetConfig = @"
   <packageSourceMapping>
     <clear />
     <packageSource key="local-salesforce">
-      <package pattern="Automate.Salesforce.Connector*" />
+      <package pattern="Umbraco.Community.Automate.Salesforce*" />
     </packageSource>
     <packageSource key="nuget.org">
       <package pattern="*" />
@@ -78,10 +78,10 @@ $nugetConfig = @"
 "@
 $nugetConfig | Out-File -FilePath "$sitePath/nuget.config" -Encoding utf8 -Force
 
-Write-Host "Installing Umbraco.Automate (from nuget.org) and Automate.Salesforce.Connector (from local feed)..." -ForegroundColor Green
+Write-Host "Installing Umbraco.Automate (from nuget.org) and Umbraco.Community.Automate.Salesforce (from local feed)..." -ForegroundColor Green
 Push-Location $sitePath
 dotnet add package Umbraco.Automate --version 17.2.0
-dotnet add package Automate.Salesforce.Connector --version $SalesforceVersion
+dotnet add package Umbraco.Community.Automate.Salesforce --version $SalesforceVersion
 Pop-Location
 
 Write-Host "Adding placeholder Salesforce Connected App config (replace with real values before authenticating)..." -ForegroundColor Green

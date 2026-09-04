@@ -1,4 +1,4 @@
-# Development Notes — Automate.Salesforce.Connector
+# Development Notes — Umbraco.Community.Automate.Salesforce
 
 This is the full historical build log and original planning brief for this package —
 kept for engineers/agents who need the reasoning behind a specific structural choice or
@@ -19,9 +19,9 @@ why — **§14 onward below**, which is a real dated log, not frozen original-br
 
 ---
 
-# CLAUDE.md — Automate.Salesforce.Connector
+# CLAUDE.md — Umbraco.Community.Automate.Salesforce
 
-This file is the working brief for an AI coding agent (or a human) building **Automate.Salesforce.Connector**: a NuGet package that adds Salesforce as a first-class **provider** to [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate), Umbraco's open-source, event-driven automation engine for Umbraco CMS 17+.
+This file is the working brief for an AI coding agent (or a human) building **Umbraco.Community.Automate.Salesforce**: a NuGet package that adds Salesforce as a first-class **provider** to [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate), Umbraco's open-source, event-driven automation engine for Umbraco CMS 17+.
 
 It should be **plug-and-play**: an implementer installs the NuGet package(s), drops in Salesforce connected-app credentials, and gets working triggers/actions in the backoffice automation canvas — no custom code, no manual database work, no guesswork.
 
@@ -35,11 +35,11 @@ It should be **plug-and-play**: an implementer installs the NuGet package(s), dr
 
 1. **Umbraco CMS 17.x** running.
 2. **`Umbraco.Automate`** (the core automation engine NuGet package) installed and composed — this is what provides the visual canvas, the workflow/run engine, the Connections/Workspaces model, and the extensibility points (`IAutomateProvider`/trigger & action registration, etc.) that this package plugs into.
-3. **`Umbraco.Automate.OpenIddict`** installed — this package's Salesforce connection type is built on top of it (see §2/§4). Umbraco's own Slack add-on installs this automatically as a transitive dependency; **`Automate.Salesforce.Connector` must do the same** — the implementer should never need to manually `dotnet add package Umbraco.Automate.OpenIddict` themselves.
+3. **`Umbraco.Automate.OpenIddict`** installed — this package's Salesforce connection type is built on top of it (see §2/§4). Umbraco's own Slack add-on installs this automatically as a transitive dependency; **`Umbraco.Community.Automate.Salesforce` must do the same** — the implementer should never need to manually `dotnet add package Umbraco.Automate.OpenIddict` themselves.
 
 Concretely, this means:
 
-- The `.csproj`/`.nuspec` for `Automate.Salesforce.Connector` must declare a NuGet **package dependency** on `Umbraco.Automate` (core) and `Umbraco.Automate.OpenIddict`, pinned to compatible version ranges via the solution's `Directory.Packages.props`, exactly the way `Umbraco.Automate.Slack` declares its dependency on Core + OpenIddict. Installing this package via NuGet pulls them in automatically if missing — this is enforced by the package manager, not by application code.
+- The `.csproj`/`.nuspec` for `Umbraco.Community.Automate.Salesforce` must declare a NuGet **package dependency** on `Umbraco.Automate` (core) and `Umbraco.Automate.OpenIddict`, pinned to compatible version ranges via the solution's `Directory.Packages.props`, exactly the way `Umbraco.Automate.Slack` declares its dependency on Core + OpenIddict. Installing this package via NuGet pulls them in automatically if missing — this is enforced by the package manager, not by application code.
 - **There is no explicit "fail fast if Core is missing" runtime check to write, and don't add one.** Confirmed against the real Slack and OpenIddict source: no such check exists anywhere in the monorepo, because it's structurally unnecessary — Core is a hard compile-time `PackageReference`/`ProjectReference`, so the assembly cannot load at all without it. Don't invent defensive composition-guard code that has no precedent in this codebase; it adds a pattern the rest of the ecosystem doesn't use.
 - Registration itself needs no interface implementation or manual wiring at all (see corrected §1a below) — there is no `IAutomateProvider` interface. Triggers, actions, and connection types are plain classes decorated with attributes (`[Action(...)]`, `[Trigger(...)]`, `[ConnectionType(...)]`) that Umbraco's `TypeLoader` auto-discovers via `GetTypesWithAttribute<...>` at startup, wired once inside Core's own composer. A provider package's only job is to make sure those attributed classes exist in its assembly and get loaded — it does not register them itself.
 - Documentation (§10) must state this prerequisite as **step 0**, before Salesforce connected-app setup, with a link to Umbraco Automate's own installation docs.
@@ -167,11 +167,11 @@ User feedback, verbatim intent: rename the "CRM" canvas group to "Salesforce"; s
 
 User asked, directly: "is the package done? can I install this on existing or new Umbraco 17 installs and start my Salesforce automations? what more work has to be done." Everything up to this point in the whole build had only ever been verified via `ProjectReference` inside the demo site's own solution — the *code* had been proven, but "can someone actually `dotnet add package` this onto an unrelated site" had never once been tested. Rather than answer from code-reading alone, this pass actually tried it, and found one real (if narrower than first assumed) packaging issue plus two genuine, previously-unverified confirmations.
 
-**Initial claim, corrected the same pass — don't trust the first read of a `dotnet pack` in isolation.** Packing only `Automate.Salesforce.Connector.csproj` alone produces a `.nupkg` containing nothing but the `.nuspec` and the README — no DLLs. Read in isolation, this looks broken. It isn't: `IncludeReferencedProjects=true` on a meta-package is the standard NuGet "umbrella package" pattern — it declares `Automate.Salesforce.Connector.Core`/`.Persistence.Sqlite`/`.Persistence.SqlServer` as ordinary NuGet dependencies (not flattened DLLs), which only resolves correctly once those three are *also* packed and published alongside it. Confirmed this actually works by packing all four into a local folder feed and restoring a throwaway consumer project against `Automate.Salesforce.Connector` alone — the full graph resolved, including the real `Umbraco.Automate.Core 17.2.0` and `Umbraco.Automate.OpenIddict 17.1.2` (confirmed published on nuget.org by querying `api.nuget.org/v3-flatcontainer/.../index.json` directly, not assumed) plus their own Persistence.SqlServer/Sqlite packages and `Umbraco.Cms.Persistence.EFCore`. The lesson, not just the fact: a "does this look empty" reaction to one project's isolated pack output isn't sufficient evidence either way for a multi-package umbrella design — the real test is a consumer restore against the whole set.
+**Initial claim, corrected the same pass — don't trust the first read of a `dotnet pack` in isolation.** Packing only `Umbraco.Community.Automate.Salesforce.csproj` alone produces a `.nupkg` containing nothing but the `.nuspec` and the README — no DLLs. Read in isolation, this looks broken. It isn't: `IncludeReferencedProjects=true` on a meta-package is the standard NuGet "umbrella package" pattern — it declares `Umbraco.Community.Automate.Salesforce.Core`/`.Persistence.Sqlite`/`.Persistence.SqlServer` as ordinary NuGet dependencies (not flattened DLLs), which only resolves correctly once those three are *also* packed and published alongside it. Confirmed this actually works by packing all four into a local folder feed and restoring a throwaway consumer project against `Umbraco.Community.Automate.Salesforce` alone — the full graph resolved, including the real `Umbraco.Automate.Core 17.2.0` and `Umbraco.Automate.OpenIddict 17.1.2` (confirmed published on nuget.org by querying `api.nuget.org/v3-flatcontainer/.../index.json` directly, not assumed) plus their own Persistence.SqlServer/Sqlite packages and `Umbraco.Cms.Persistence.EFCore`. The lesson, not just the fact: a "does this look empty" reaction to one project's isolated pack output isn't sufficient evidence either way for a multi-package umbrella design — the real test is a consumer restore against the whole set.
 
 **Real bug found and fixed:** packing any of the four projects with the *default* `UseProjectReferences` (which resolves to `true` whenever the sibling `../Umbraco.Automate` monorepo checkout is present — i.e. always, in this dev environment) bakes the dependency on `Umbraco.Automate.Core`/`Umbraco.Automate.OpenIddict` to whatever local Nerdbank.GitVersioning preview version that sibling checkout happens to compute (e.g. `17.2.1--preview.1.g636b1dc`) instead of the intended published-floor range (`[17.2.0, 17.999.999)`) from `Directory.Packages.props`. A package built that way would restore fine on this machine and fail to restore anywhere else, silently, with no error until someone else tried it. **Fix:** `-p:UseProjectReferences=false` must be passed when packing for real distribution — this isn't new, the flag already existed for exactly this reason (see the csproj comments), but nothing enforced remembering it. Codified into `scripts/pack-release.ps1` (new), which always passes it, mirroring the real monorepo's own `.azure-pipelines/templates/pack-product.yml` pack step (`dotnet pack {product}.slnx --configuration Release --no-build -p:UseProjectReferences=false`) adapted to this repo's four-project layout.
 
-**Genuinely new verification — the biggest one:** built `scripts/install-package-test-site.ps1` (new, mirrors the real monorepo's own script of the same name) and ran it for real: packed all four projects with the fix above, created a **brand-new, separate** `dotnet new umbraco` site (`demos/v17/Automate.Salesforce.Connector.PackageTestSite`, distinct from the long-running `DemoSite` this whole project has used until now), installed `Umbraco.Automate` from nuget.org and `Automate.Salesforce.Connector` from the local pack output via `dotnet add package` — zero project references anywhere in this site. Result: clean build, clean boot, `Running 7 pending Automate migrations` / `Automate migrations completed successfully` in the log, and — confirmed live in the browser — **Automation → Connections → Create** lists both `Salesforce` ("Connect to a Salesforce production organization") and `Salesforce (Sandbox)`. This is the first time in the life of this package that the actual NuGet-install path, as opposed to the dev project-reference path, has been exercised at all.
+**Genuinely new verification — the biggest one:** built `scripts/install-package-test-site.ps1` (new, mirrors the real monorepo's own script of the same name) and ran it for real: packed all four projects with the fix above, created a **brand-new, separate** `dotnet new umbraco` site (`demos/v17/Umbraco.Community.Automate.Salesforce.PackageTestSite`, distinct from the long-running `DemoSite` this whole project has used until now), installed `Umbraco.Automate` from nuget.org and `Umbraco.Community.Automate.Salesforce` from the local pack output via `dotnet add package` — zero project references anywhere in this site. Result: clean build, clean boot, `Running 7 pending Automate migrations` / `Automate migrations completed successfully` in the log, and — confirmed live in the browser — **Automation → Connections → Create** lists both `Salesforce` ("Connect to a Salesforce production organization") and `Salesforce (Sandbox)`. This is the first time in the life of this package that the actual NuGet-install path, as opposed to the dev project-reference path, has been exercised at all.
 
 **Also new: the SQL Server persistence path, never once tested before this pass, now is.** Every prior migration test in this project's history ran against SQLite (the `DemoSite`'s configured provider) — the `Persistence.SqlServer` project existed and built, but nothing had ever pointed it at a real SQL Server and confirmed the migration actually applies. A local SQL Server Express instance (`localhost\SQLEXPRESS`) was available; created a second fresh site pointed at it (`umbracoDbDSN`/`umbracoAutomateDbDSN` both `Microsoft.Data.SqlClient`, two separate databases), booted it, saw the same `Running 7 pending Automate migrations` / `Automate migrations completed successfully` log lines, and confirmed directly via `sqlcmd` that `umbracoAutomateSalesforcePollingState` actually exists in the resulting database. Both test databases and the test site folder were removed afterward (its config was machine-specific, not portable — unlike `PackageTestSite`, which uses portable SQLite and was kept).
 
@@ -199,11 +199,11 @@ New unit tests added for #1, #2, #3, and #6 (finding #4's fix — the `JsonDocum
 User asked directly for a structural-consistency pass against Slack, since Umbraco intends to adopt this package the same way Slack was adopted, and structural consistency is a hard requirement for that process, not a style preference. A read-only audit (comparing real Slack/OpenIddict source file-by-file, not assumptions) found several gaps beyond what §0a had already settled (persistence split, attribute registration, no custom UI, curated trigger/action count — all reconfirmed correct and not re-litigated). Fixed this pass:
 
 - **Root-level files Slack/the monorepo ship that this repo didn't**: added `.editorconfig` (copied verbatim from the monorepo root — this repo has no shared root to inherit it from, being standalone) and `LICENSE` (MIT, Umbraco HQ, matching the monorepo's), and wired `LICENSE` into `Directory.Build.props`'s packing (`<Content Include>`), same mechanism Slack uses. Added `NuGet.config` (package-source pinning to nuget.org + the Umbraco prerelease/nightly feeds) — previously this repo had no explicit source pinning at all, unlike every other product in this family.
-- **Cosmetic naming drift**: `README.md`'s title changed from the dotted `Automate.Salesforce.Connector` to the spaced `Automate Salesforce Connector`, matching Slack's real README title format. `Automate.Salesforce.Connector.slnx`'s test-project solution folder changed from `/tests/` to `/Tests/` (capital T), matching `Umbraco.Automate.OpenIddict.slnx` (the real structural precedent for this package's project split) exactly.
+- **Cosmetic naming drift**: `README.md`'s title changed from the dotted `Umbraco.Community.Automate.Salesforce` to the spaced `Umbraco Community Automate Salesforce`, matching Slack's real README title format. `Umbraco.Community.Automate.Salesforce.slnx`'s test-project solution folder changed from `/tests/` to `/Tests/` (capital T), matching `Umbraco.Automate.OpenIddict.slnx` (the real structural precedent for this package's project split) exactly.
 - **Marketplace-facing copy was inaccurate**: `umbraco-marketplace-readme.md` described Platform Events and a Convert Lead action — both dropped from scope months ago per the corrections above — rewritten to describe the actual 1 trigger / 7 actions that ship.
 - **`CHANGELOG.md` was a one-line stub**, not in the Keep a Changelog format every other package in this family uses (confirmed against `Umbraco.Automate.OpenIddict`'s real `CHANGELOG.md`). Reformatted to match that header shape, with an honest `## [Unreleased]` — fabricating dated entries with fake commit-SHA links (like OpenIddict's real entries have) would have been presenting invented history as real, which this package's own culture explicitly guards against.
-- **Missing appsettings.json JSON-schema generation** — a real Slack feature (`UmbracoAutomateSlackSchema.cs` + a `GenerateAppsettingsSchema` MSBuild target + `buildTransitive/*.props`, giving implementers appsettings.json IntelliSense) that this package's `Core.csproj` had scaffolded as an empty `buildTransitive/.gitkeep` placeholder with a "TODO, see Slack's pattern" comment, never actually built. Built for real this pass: `AutomateSalesforceConnectorSchema.cs` (describing `Umbraco:Automate:Providers:Salesforce`/`:SalesforceSandbox` via the shared `OAuthProviderConfiguration` base Slack's own schema also extends, plus `Umbraco:Automate:Salesforce` and its nested `:Polling` section, matching `SalesforceApiOptions`/`SalesforcePollingOptions` exactly), `buildTransitive/Automate.Salesforce.Connector.Core.props`, and the matching `GenerateAppsettingsSchema` target in `Automate.Salesforce.Connector.Core.csproj` — copied from Slack's real target verbatim, renamed. Confirmed generating a correct, sane schema on build (`TimeSpan` properties came out as `"format": "duration"` strings, matching NJsonSchema's built-in handling — not something guessed).
-- **Real bug found while verifying the above, fixed, and worth flagging to the Umbraco team as a possible latent issue in Slack's own pack pipeline too**: building `Automate.Salesforce.Connector.Core.csproj` with `-p:UseProjectReferences=false` (real NuGet packages — the mode `scripts/pack-release.ps1` and the real monorepo's `pack-product.yml` template both actually build+pack with) made `GenerateAppsettingsSchema`'s `JsonSchemaGenerate` task fail: `Could not load file or assembly 'Umbraco.Automate.OpenIddict.Core' ... The system cannot find the file specified.` Root cause, confirmed by inspecting the actual build output folder: `Microsoft.NET.Sdk.Razor` class-library projects (not Web-SDK/executable projects) do **not** copy transitive `PackageReference` DLLs into their own `bin/` output by default (`CopyLocalLockFileAssemblies` defaults to `false` for library projects) — only `ProjectReference`s copy transitively regardless of that setting. So `JsonSchemaGenerate`'s reflection-based load of `$(TargetPath)` found `Umbraco.Automate.OpenIddict.Core.dll` genuinely absent next to `Automate.Salesforce.Connector.Core.dll`, even though the real, correctly-versioned package was present in the local NuGet cache (`~/.nuget/packages/umbraco.automate.openiddict.core/17.1.2/lib/net10.0/`, confirmed by listing it directly) — this was never caught by dev-mode builds because dev mode defaults to `UseProjectReferences=true`, and `ProjectReference` output copying masks the gap entirely. **Fixed** by adding `<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>` to `Automate.Salesforce.Connector.Core.csproj`. Verified end-to-end: full `dotnet build -p:UseProjectReferences=false` now succeeds and generates the schema; packed all four projects for real (`Core`/`Persistence.SqlServer`/`Persistence.Sqlite`/meta-package) and confirmed via `unzip -l` that `LICENSE`, `appsettings-schema.Automate.Salesforce.Connector.json`, and `buildTransitive/*.props` all land inside the resulting `.nupkg` files. **Because `Umbraco.Automate.Slack.csproj` is the identical `Microsoft.NET.Sdk.Razor` shape with the identical `JsonSchemaGenerate BeforeTargets="Build"` pattern and no `CopyLocalLockFileAssemblies` override anywhere in its own source (confirmed by grep), this same failure mode would very plausibly reproduce on the real Slack package too if its own CI ever built with `UseProjectReferences=false` from a clean state** — this is worth reporting upstream rather than assuming Slack's real CI has already caught it, since nothing in Slack's own repo suggests it has been fixed there.
+- **Missing appsettings.json JSON-schema generation** — a real Slack feature (`UmbracoAutomateSlackSchema.cs` + a `GenerateAppsettingsSchema` MSBuild target + `buildTransitive/*.props`, giving implementers appsettings.json IntelliSense) that this package's `Core.csproj` had scaffolded as an empty `buildTransitive/.gitkeep` placeholder with a "TODO, see Slack's pattern" comment, never actually built. Built for real this pass: `UmbracoCommunityAutomateSalesforceSchema.cs` (describing `Umbraco:Automate:Providers:Salesforce`/`:SalesforceSandbox` via the shared `OAuthProviderConfiguration` base Slack's own schema also extends, plus `Umbraco:Automate:Salesforce` and its nested `:Polling` section, matching `SalesforceApiOptions`/`SalesforcePollingOptions` exactly), `buildTransitive/Umbraco.Community.Automate.Salesforce.Core.props`, and the matching `GenerateAppsettingsSchema` target in `Umbraco.Community.Automate.Salesforce.Core.csproj` — copied from Slack's real target verbatim, renamed. Confirmed generating a correct, sane schema on build (`TimeSpan` properties came out as `"format": "duration"` strings, matching NJsonSchema's built-in handling — not something guessed).
+- **Real bug found while verifying the above, fixed, and worth flagging to the Umbraco team as a possible latent issue in Slack's own pack pipeline too**: building `Umbraco.Community.Automate.Salesforce.Core.csproj` with `-p:UseProjectReferences=false` (real NuGet packages — the mode `scripts/pack-release.ps1` and the real monorepo's `pack-product.yml` template both actually build+pack with) made `GenerateAppsettingsSchema`'s `JsonSchemaGenerate` task fail: `Could not load file or assembly 'Umbraco.Automate.OpenIddict.Core' ... The system cannot find the file specified.` Root cause, confirmed by inspecting the actual build output folder: `Microsoft.NET.Sdk.Razor` class-library projects (not Web-SDK/executable projects) do **not** copy transitive `PackageReference` DLLs into their own `bin/` output by default (`CopyLocalLockFileAssemblies` defaults to `false` for library projects) — only `ProjectReference`s copy transitively regardless of that setting. So `JsonSchemaGenerate`'s reflection-based load of `$(TargetPath)` found `Umbraco.Automate.OpenIddict.Core.dll` genuinely absent next to `Umbraco.Community.Automate.Salesforce.Core.dll`, even though the real, correctly-versioned package was present in the local NuGet cache (`~/.nuget/packages/umbraco.automate.openiddict.core/17.1.2/lib/net10.0/`, confirmed by listing it directly) — this was never caught by dev-mode builds because dev mode defaults to `UseProjectReferences=true`, and `ProjectReference` output copying masks the gap entirely. **Fixed** by adding `<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>` to `Umbraco.Community.Automate.Salesforce.Core.csproj`. Verified end-to-end: full `dotnet build -p:UseProjectReferences=false` now succeeds and generates the schema; packed all four projects for real (`Core`/`Persistence.SqlServer`/`Persistence.Sqlite`/meta-package) and confirmed via `unzip -l` that `LICENSE`, `appsettings-schema.Umbraco.Community.Automate.Salesforce.json`, and `buildTransitive/*.props` all land inside the resulting `.nupkg` files. **Because `Umbraco.Automate.Slack.csproj` is the identical `Microsoft.NET.Sdk.Razor` shape with the identical `JsonSchemaGenerate BeforeTargets="Build"` pattern and no `CopyLocalLockFileAssemblies` override anywhere in its own source (confirmed by grep), this same failure mode would very plausibly reproduce on the real Slack package too if its own CI ever built with `UseProjectReferences=false` from a clean state** — this is worth reporting upstream rather than assuming Slack's real CI has already caught it, since nothing in Slack's own repo suggests it has been fixed there.
 
 **Left open, needing a decision (flagged to the user, not silently resolved):**
 1. **`umbraco-marketplace.json`'s `DocumentationUrl`/`IssueTrackerUrl` are still literal placeholders** (`"REPLACE_WITH_REAL_..._BEFORE_PUBLISHING"`) — blocked on the still-undecided "standalone repo vs. folded into the `umbraco/Umbraco.Automate` monorepo" question from the packaging-verification pass above, which also blocks `PackageProjectUrl` in `Directory.Build.props`.
@@ -222,7 +222,7 @@ git clone https://github.com/umbraco/Umbraco.Automate.git ../Umbraco.Automate
 cd ../Umbraco.Automate && git checkout v17/dev
 ```
 
-**Gotcha already hit once, don't re-trip on it:** that clone is the *whole monorepo*, not just the Core product. `Umbraco.Automate.Core.csproj` lives one level deeper than the clone root, under the monorepo's own `Umbraco.Automate/` product folder — i.e. `../Umbraco.Automate/Umbraco.Automate/src/Umbraco.Automate.Core/Umbraco.Automate.Core.csproj`, not `../Umbraco.Automate/src/...`. Same one-extra-level pattern for OpenIddict (`../Umbraco.Automate/Umbraco.Automate.OpenIddict/src/...`) and Slack (`../Umbraco.Automate/Umbraco.Automate.Slack/...`). This package's own `Automate.Salesforce.Connector.Core.csproj` already has the right paths in its `UseProjectReferences` block — check there if this ever seems to have drifted, rather than re-deriving it from scratch.
+**Gotcha already hit once, don't re-trip on it:** that clone is the *whole monorepo*, not just the Core product. `Umbraco.Automate.Core.csproj` lives one level deeper than the clone root, under the monorepo's own `Umbraco.Automate/` product folder — i.e. `../Umbraco.Automate/Umbraco.Automate/src/Umbraco.Automate.Core/Umbraco.Automate.Core.csproj`, not `../Umbraco.Automate/src/...`. Same one-extra-level pattern for OpenIddict (`../Umbraco.Automate/Umbraco.Automate.OpenIddict/src/...`) and Slack (`../Umbraco.Automate/Umbraco.Automate.Slack/...`). This package's own `Umbraco.Community.Automate.Salesforce.Core.csproj` already has the right paths in its `UseProjectReferences` block — check there if this ever seems to have drifted, rather than re-deriving it from scratch.
 
 **When in doubt about anything — not just Slack's patterns, but any Core behavior, service signature, or platform constraint — read the actual source in that clone first.** This brief and its own corrections in §0a describe *intent* and *what's been confirmed*; they are not a substitute for reading the code when something new comes up that isn't already covered here. Core (`Umbraco.Automate/Umbraco.Automate/`) is the bigger, more authoritative reference than Slack for anything that isn't a direct connection-type/action pattern — trigger dispatch, workspace/connection services, EF Core persistence conventions, background job base classes, the whole `Umbraco.Automate.Core.Triggers`/`.Actions`/`.Connections`/`.Workspaces` namespace tree. Slack is the template for the narrow slice of things it actually demonstrates (one connection type, one action) — see the bullet below for exactly what that slice is. Don't guess an API shape from either package's `CLAUDE.md` alone when the real `.cs` file is one `Read`/`Grep` call away in the clone.
 
@@ -240,7 +240,7 @@ Before writing any code, pull down and actually read these — don't rely on mem
   - how OAuth scopes are configured in `appsettings.json`
   - how errors/retries surface in the automation Run log
   - changelog, versioning, and conventional-commit conventions
-- `Umbraco.Automate.OpenIddict/` (again, specifically for structure this time) — **the template for this package's project layout**, because it's the closest real precedent for "a provider that ships its own persistence": Core + `Persistence.SqlServer` + `Persistence.Sqlite` + a bundling meta-package. Mirror that split for `Automate.Salesforce.Connector` rather than Slack's single-project shape (see §0a and §2).
+- `Umbraco.Automate.OpenIddict/` (again, specifically for structure this time) — **the template for this package's project layout**, because it's the closest real precedent for "a provider that ships its own persistence": Core + `Persistence.SqlServer` + `Persistence.Sqlite` + a bundling meta-package. Mirror that split for `Umbraco.Community.Automate.Salesforce` rather than Slack's single-project shape (see §0a and §2).
 - `docs/engineering-spec.md` and `docs/identity-ownership-permissions.md` in the monorepo — the platform's contracts for how a provider must behave to be considered "well-behaved" (permission scoping to workspaces, connection ownership, audit logging, etc.)
 - Umbraco's public docs: `https://docs.umbraco.com/umbraco-automate/add-ons/slack/installation` and the sibling pages — this is the *installation experience* an implementer has for Slack today. The Salesforce install experience must read the same way: register an app, add a redirect URL, paste a client ID/secret into config, restart, authenticate. No steps beyond that should be needed.
 
@@ -250,16 +250,16 @@ If anything below conflicts with what you find in the real Core/Slack/OpenIddict
 
 ## 2. What this package is
 
-**Automate.Salesforce.Connector** — a Salesforce connection provider for Umbraco Automate, dependent on Core + OpenIddict but **structured like `Umbraco.Automate.OpenIddict` (Core/Persistence split), not like the single-project `Umbraco.Automate.Slack`** — because this package, unlike Slack, needs its own database table (the Describe-metadata cache in §5). See §0a for why.
+**Umbraco.Community.Automate.Salesforce** — a Salesforce connection provider for Umbraco Automate, dependent on Core + OpenIddict but **structured like `Umbraco.Automate.OpenIddict` (Core/Persistence split), not like the single-project `Umbraco.Automate.Slack`** — because this package, unlike Slack, needs its own database table (the Describe-metadata cache in §5). See §0a for why.
 
 ```
 Umbraco.Automate (Core)                       ← NuGet/project dependency, not modified
     └── Umbraco.Automate.OpenIddict           ← NuGet/project dependency, not modified
-        └── Automate.Salesforce.Connector       ← THIS PACKAGE (Provider), split like OpenIddict:
-              ├── Automate.Salesforce.Connector                    (core: connection type, actions, triggers, attributed classes)
-              ├── Automate.Salesforce.Connector.Persistence.SqlServer
-              ├── Automate.Salesforce.Connector.Persistence.Sqlite
-              └── Automate.Salesforce.Connector (meta-package)     ← what implementers actually install; references the above
+        └── Umbraco.Community.Automate.Salesforce       ← THIS PACKAGE (Provider), split like OpenIddict:
+              ├── Umbraco.Community.Automate.Salesforce                    (core: connection type, actions, triggers, attributed classes)
+              ├── Umbraco.Community.Automate.Salesforce.Persistence.SqlServer
+              ├── Umbraco.Community.Automate.Salesforce.Persistence.Sqlite
+              └── Umbraco.Community.Automate.Salesforce (meta-package)     ← what implementers actually install; references the above
 ```
 
 Confirm the exact project names against the real `Umbraco.Automate.OpenIddict` source before finalizing — the table above is the pattern, not a verified literal naming scheme. Ship this as the single NuGet package an implementer installs (the bundling meta-package), so "plug and play" still means one `dotnet add package` / one Marketplace install, even though multiple assemblies ship under the hood.
@@ -436,7 +436,7 @@ Updated 2026-08-19 — most items below are now genuinely verified (not assumed)
 
 - [x] **Umbraco Automate (core) and Umbraco.Automate.OpenIddict are declared package/project dependencies**, and the package fails to compile without them — confirmed; no defensive runtime check exists, per §0a.
 - [x] Builds against the exact target framework/Umbraco version pinned in the monorepo, with zero manual steps beyond `dotnet build` — confirmed, including a from-scratch build using only real NuGet packages (`-p:UseProjectReferences=false`), not just the sibling-project-reference dev path.
-- [x] **Installs into a clean Umbraco 17 site via NuGet with zero code changes required from the implementer** — confirmed live, for real, this pass: a genuinely fresh `dotnet new umbraco` site, `dotnet add package Umbraco.Automate`/`Automate.Salesforce.Connector` from nuget.org + a local pack output, zero project references. Booted clean, migrations ran, both connection types appeared in the canvas. This was the single biggest previously-unverified claim in this document; it no longer is.
+- [x] **Installs into a clean Umbraco 17 site via NuGet with zero code changes required from the implementer** — confirmed live, for real, this pass: a genuinely fresh `dotnet new umbraco` site, `dotnet add package Umbraco.Automate`/`Umbraco.Community.Automate.Salesforce` from nuget.org + a local pack output, zero project references. Booted clean, migrations ran, both connection types appeared in the canvas. This was the single biggest previously-unverified claim in this document; it no longer is.
 - [x] Connection type, actions, and triggers register purely via attributes — confirmed (and confirmed *again* on the fresh install above, not just the long-running demo site).
 - [x] **Migrations run automatically... site boots clean on first install** — confirmed on first install against both SQLite (fresh `PackageTestSite`) and, this pass, a **real SQL Server Express instance** (verified via `sqlcmd`: the `umbracoAutomateSalesforcePollingState` table was actually created). *"...and on upgrade from a previous version"* — **not tested and not yet applicable**: there is no prior released version of this package to upgrade from (still pre-1.0, never published).
 - [x] Connection setup is OAuth-only, PKCE where supported, tokens encrypted at rest, re-auth flow works, reuses OpenIddict's generic connection picker — confirmed live earlier this session with a real Salesforce login.
@@ -475,7 +475,7 @@ the Opportunity Stage Changed trigger. Everything under §6/§7 above describing
 left in place above as historical record of what v0.1.0 shipped, not as current scope.
 
 Concretely, this pass:
-- Deleted `src/Automate.Salesforce.Connector.Core/Actions/` in full (22 files), plus
+- Deleted `src/Umbraco.Community.Automate.Salesforce.Core/Actions/` in full (22 files), plus
   `SalesforceSoqlEscaper.cs` and `SalesforceFieldListHelper.cs` (confirmed zero remaining call
   sites once Actions are gone — the surviving trigger's SOQL is built entirely from internal,
   fixed values, never a bound/free-text value, so there is no injection surface left to escape).
@@ -541,7 +541,7 @@ This pass:
   spliced into flat text. This is the same structural limitation v1's `docs/security.md` already
   documented; restoring that documented-but-imperfect state is not a regression.
 - **Deleted the trigger and its entire persistence layer** — not just `Triggers/`, but
-  `Persistence/`, both `Automate.Salesforce.Connector.Persistence.SqlServer`/`.Sqlite` projects, and
+  `Persistence/`, both `Umbraco.Community.Automate.Salesforce.Persistence.SqlServer`/`.Sqlite` projects, and
   the composer's `AddUmbracoDbContext`/migration-notification wiring. The reasoning chain: the
   *only* reason this package was ever split into 4 projects (meta-package + Core + two persistence
   providers) was the trigger's one EF Core checkpoint table. Once the trigger's gone, actions need
@@ -549,20 +549,20 @@ This pass:
   stated justification (§0a, "unlike Slack, this package needs its own persistence") no longer
   holds.
 - **Collapsed the solution from 4 projects to 1**, matching `Umbraco.Automate.Slack`'s shape
-  exactly: merged the old `Automate.Salesforce.Connector.Core` project's contents (its C# namespaces
-  were already `Automate.Salesforce.Connector.*`, never `.Core.*`, so this was a pure file move, zero
-  code changes) into `src/Automate.Salesforce.Connector/`, deleted the old thin meta-package
+  exactly: merged the old `Umbraco.Community.Automate.Salesforce.Core` project's contents (its C# namespaces
+  were already `Umbraco.Community.Automate.Salesforce.*`, never `.Core.*`, so this was a pure file move, zero
+  code changes) into `src/Umbraco.Community.Automate.Salesforce/`, deleted the old thin meta-package
   `.csproj` and both persistence projects, dropped the now-unused `Umbraco.Cms.Persistence.EFCore`
   family and `Microsoft.EntityFrameworkCore.Design`/`Microsoft.Data.Sqlite` pins from
-  `Directory.Packages.props`, and updated `Automate.Salesforce.Connector.slnx`, both test projects'
+  `Directory.Packages.props`, and updated `Umbraco.Community.Automate.Salesforce.slnx`, both test projects'
   `ProjectReference`s, `scripts/pack-release.ps1`, `scripts/install-package-test-site.ps1`, and
   `azure-pipelines.yml` accordingly.
 - Sandbox stays untouched throughout (unaffected by any of this — it was never on the table this
   time).
 - Build green, 67/67 unit tests + 2/2 integration tests pass after the full sequence above.
 
-**Note for whoever reads this next:** during this pass, `tests/.../Automate.Salesforce.Connector.Tests.Unit.csproj`,
-`tests/.../Automate.Salesforce.Connector.Tests.Integration.csproj`, and this repo's own `.slnx` were
+**Note for whoever reads this next:** during this pass, `tests/.../Umbraco.Community.Automate.Salesforce.Tests.Unit.csproj`,
+`tests/.../Umbraco.Community.Automate.Salesforce.Tests.Integration.csproj`, and this repo's own `.slnx` were
 found already missing their `<ProjectReference>`/`<Project Path>` entries to the old Core project
 — from *before* this pass started, cause undetermined (not a deliberate edit by this pass or the
 one before it). Re-added correctly pointing at the merged project as part of this work; if project
@@ -685,10 +685,10 @@ see the note at the end of this section.
 
 **Packaged install re-verified against the actual v2 shape**, not the pre-restructure layout
 `docs/dev-notes.md` §12 originally validated. `scripts/pack-release.ps1` still packs cleanly
-(`Automate.Salesforce.Connector.0.1.0.nupkg` — version unchanged, this package has still never been
+(`Umbraco.Community.Automate.Salesforce.0.1.0.nupkg` — version unchanged, this package has still never been
 tagged/released) and `scripts/install-package-test-site.ps1` still installs it into a genuinely
 fresh `dotnet new umbraco` site via real NuGet packages (`Umbraco.Automate` from nuget.org,
-`Automate.Salesforce.Connector` from the local pack output) with zero project references and zero
+`Umbraco.Community.Automate.Salesforce` from the local pack output) with zero project references and zero
 code changes. Both scripts needed `powershell.exe -ExecutionPolicy Bypass` to run at all on this
 machine (the default `Restricted`/`AllSigned` policy blocks unsigned local scripts entirely) —
 worth noting in case a CI agent's default policy does the same; the real Azure DevOps `pwsh` task
@@ -752,13 +752,13 @@ Credentials Flow.
   fixed) this may still default to "first match" the way the old polling-trigger resolver did;
   worth a follow-up before calling multi-org support fully verified.
 - The test Lead the run created (`LastName=IntegrationTest`,
-  `Company=Automate Salesforce Connector Live Verification`) was queried and deleted from the real
+  `Company=Umbraco Community Automate Salesforce Live Verification`) was queried and deleted from the real
   org afterward via a throwaway Client Credentials script, so nothing was left behind in the user's
   org from this verification pass.
 
 **Add to Campaign's live coverage — closed (2026-08-28).** The user granted the Client
 Credentials Flow integration user Marketing User access in this org's Salesforce Setup. Re-ran
-`tests/Automate.Salesforce.Connector.Tests.Integration` against the live org:
+`tests/Umbraco.Community.Automate.Salesforce.Tests.Integration` against the live org:
 **7/7 passing** (up from 6/7 in §17) — all 6 named actions' live-org action-level tests now pass,
 plus the original Lead CRUD round-trip test. All 6 actions are now confirmed working end to end
 against a real Salesforce org, not just unit-tested.
@@ -811,7 +811,7 @@ canvas.** Everything below runs through the real `Action` classes via
 `Umbraco.Automate.Testing.ActionTestHarness` (see §17) against the real org — it does not exercise
 real triggers or real canvas control-flow nodes (If/Switch/ForEach/Parallel as actual steps), since
 those specifically require the canvas. New file:
-`tests/Automate.Salesforce.Connector.Tests.Integration/LiveSalesforce/LiveSalesforcePocTests.cs`.
+`tests/Umbraco.Community.Automate.Salesforce.Tests.Integration/LiveSalesforce/LiveSalesforcePocTests.cs`.
 **All 15 live integration tests pass** (9 from before this pass + this file's 6):
 
 - **Full customer journey, all 6 actions chained live**, each step's output bound into a later
@@ -911,7 +911,7 @@ The "Umbraco Core frontend bug" conclusion above is **wrong**, found while answe
 follow-up ask to determine whether a genuinely fresh, minimal install (`Umbraco.Automate` only, no
 Salesforce) showed the same blank Automate section. It didn't — a brand-new site with only Core +
 Umbraco.Automate rendered the section perfectly on first load. Adding
-`Automate.Salesforce.Connector 0.1.0` (packed locally, installed via a `nuget.config` local feed) to
+`Umbraco.Community.Automate.Salesforce 0.1.0` (packed locally, installed via a `nuget.config` local feed) to
 that same site then appeared to reintroduce the "blank" symptom on a hard reload / direct URL
 navigation — sidebar showed only a "Settings" heading, no children, empty main pane, zero console
 errors, zero network failures, zero unhandled rejections (confirmed by installing
@@ -1063,7 +1063,7 @@ NuGet, so nothing outside this repo had consumed it as a real package).
 
 Removed: `SalesforceSandboxConnectionType`, `SalesforceSandboxConnectionSettings`, the second
 OpenIddict WebIntegration registration in `SalesforceComposer` (`test.salesforce.com`, provider
-name `SalesforceSandbox`), the `SalesforceSandbox` entry in `AutomateSalesforceConnectorSchema`'s
+name `SalesforceSandbox`), the `SalesforceSandbox` entry in `UmbracoCommunityAutomateSalesforceSchema`'s
 `ProvidersDefinition`, and the now single-implementation `ISalesforceConnectionSettings`
 interface — `SalesforceActionSupport.TryGetCredentialsId` checks `SalesforceConnectionSettings`
 directly instead, since introducing an abstraction for one implementer is the wrong direction now.
@@ -1151,9 +1151,9 @@ NOT do X" statement) — but did surface several genuine leftovers from the aban
 polling-trigger/Describe-metadata-cache architecture (§0a, §14-16) that outlived that architecture's
 removal:
 
-- **`src/Automate.Salesforce.Connector/Metadata/.gitkeep`** — an empty folder scaffolded for the
+- **`src/Umbraco.Community.Automate.Salesforce/Metadata/.gitkeep`** — an empty folder scaffolded for the
   Describe-metadata cache service §5 explicitly says was "considered and deliberately not built."
-  Removed, along with the stale reference to it in `Automate.Salesforce.Connector.csproj`'s own header
+  Removed, along with the stale reference to it in `Umbraco.Community.Automate.Salesforce.csproj`'s own header
   comment (which still described the project as holding a `Metadata/` folder for that service).
 - **`.config/dotnet-tools.json`** — pinned `dotnet-ef` as a local tool. Nothing in this package has
   used EF Core since the polling-trigger/metadata-cache persistence project plan was dropped (no
@@ -1219,13 +1219,13 @@ into an automatic "keep the tag in sync" habit.
 
 One-time setup this needs on nuget.org (a human action, not something scriptable from here): sign
 in → username → **Trusted Publishing** → add a policy with Repository Owner `ramirezja3`,
-Repository `Umbraco.Salesforce`, Workflow File `publish.yml`, scope glob `Automate.Salesforce.Connector`.
+Repository `Umbraco.Salesforce`, Workflow File `publish.yml`, scope glob `Umbraco.Community.Automate.Salesforce`.
 Per nuget.org's own docs, the 7-day "pending activation" window they describe "usually happens with
 private GitHub repos" — this repo is public, so it's not expected here, but the docs don't promise
 it never applies to a public repo either; if the policy shows as pending after creation, that's
 expected per their own docs, not a sign something's misconfigured.
 
-## 26. Renamed to Automate.Salesforce.Connector — Umbraco.* is a reserved NuGet prefix (2026-09-04)
+## 26. Renamed to Umbraco.Community.Automate.Salesforce — Umbraco.* is a reserved NuGet prefix (2026-09-04)
 
 The first real manual upload attempt at nuget.org was rejected: "This package ID has been
 reserved. Please request access to upload to this reserved namespace from the owner of the
@@ -1241,7 +1241,7 @@ distinction NuGet enforces at the infrastructure level, not just a style choice.
 
 **Decided:** rather than pursue asking Umbraco HQ to delegate a sub-prefix (a real ask to a real
 company for an unofficial, independently-built package — slow, uncertain, and not this session's
-call to make), renamed the whole package to `Automate.Salesforce.Connector` — chosen deliberately
+call to make), renamed the whole package to `Umbraco.Community.Automate.Salesforce` — chosen deliberately
 to *not* contain "Umbraco" anywhere in the ID at all, not just outside the reserved prefix
 position, since a substring match elsewhere could still read as implying affiliation even where
 NuGet's automated prefix check wouldn't catch it. The connection to Umbraco Automate is still
@@ -1250,9 +1250,9 @@ Automate") and every doc — nothing about *what this package is for* is hidden,
 longer borrows Umbraco's own reserved namespace.
 
 **What actually changed:** NuGet package ID, C# root namespace (`Umbraco.Automate.Salesforce` →
-`Automate.Salesforce.Connector`, applied to every `.cs` file's `namespace`/`using` declarations),
+`Umbraco.Community.Automate.Salesforce`, applied to every `.cs` file's `namespace`/`using` declarations),
 solution file, both project files, both test project files, the internal schema class
-(`UmbracoAutomateSalesforceSchema` → `AutomateSalesforceConnectorSchema`), the buildTransitive
+(`UmbracoAutomateSalesforceSchema` → `UmbracoCommunityAutomateSalesforceSchema`), the buildTransitive
 props file, `StaticWebAssetBasePath`, the generated appsettings-schema filename, every doc/CLAUDE.md
 mention, and the CI workflows/scripts that reference any of the above. Deliberately **not**
 changed: the GitHub repository itself stays `ramirezja3/Umbraco.Salesforce` (renaming a live repo
@@ -1275,7 +1275,7 @@ re-establishing the accidental coupling — this was always fragile, rename or n
 
 Verified after every change: both build modes (default `ProjectReference` and
 `-p:UseProjectReferences=false`) succeed with zero errors; all 67 unit tests and all 15 live
-integration tests pass against the real org; a real pack produces `Automate.Salesforce.Connector.0.1.0.nupkg`
+integration tests pass against the real org; a real pack produces `Umbraco.Community.Automate.Salesforce.0.1.0.nupkg`
 with the correct id/dependencies in its `.nuspec`. One script bug the mechanical rename missed and
 had to be fixed by hand: `install-package-test-site.ps1` parsed the packed filename with a
 hardcoded regex (`^Umbraco\.Automate\.Salesforce\.(.+)\.nupkg$`) that the name-substitution pass

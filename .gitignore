@@ -75,4 +75,4 @@ Desktop.ini
 
 # Generated appsettings JSON schema (build artifact of the
 # GenerateAppsettingsSchema target — never commit, it goes stale)
-appsettings-schema.Automate.Salesforce.Connector.json
+appsettings-schema.Umbraco.Community.Automate.Salesforce.json

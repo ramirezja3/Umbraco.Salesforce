@@ -1,10 +1,10 @@
-# Automate Salesforce Connector
+# Umbraco Community Automate Salesforce
 
 Salesforce connection and actions for [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate).
 
 ## Overview
 
-Automate.Salesforce.Connector is a provider package that adds Salesforce connectivity to Umbraco Automate. It contributes a Salesforce connection type (authenticated via OAuth) and six named CRM actions usable as steps in automations — for example, creating a Lead when content is published.
+Umbraco.Community.Automate.Salesforce is a provider package that adds Salesforce connectivity to Umbraco Automate. It contributes a Salesforce connection type (authenticated via OAuth) and six named CRM actions usable as steps in automations — for example, creating a Lead when content is published.
 
 Requires **Umbraco.Automate** (core) already installed and composed — this package does nothing on its own. `Umbraco.Automate.OpenIddict` is pulled in automatically as a transitive dependency; you never install it by hand.
 
@@ -18,7 +18,7 @@ Requires **Umbraco.Automate** (core) already installed and composed — this pac
 ## Installation
 
 ```bash
-dotnet add package Automate.Salesforce.Connector
+dotnet add package Umbraco.Community.Automate.Salesforce
 ```
 
 ## Configuration
