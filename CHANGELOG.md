@@ -31,6 +31,12 @@ Initial public preview.
   actionable error if `Umbraco.Automate` core isn't installed/composed.
 - Docs: installation guide, action reference, security posture, troubleshooting guide.
 
+### Security
+
+- The stored Salesforce instance URL is validated as an HTTPS `*.salesforce.com`/`*.force.com`
+  host before any request is ever built against it, so a corrupted or unexpectedly-shaped stored
+  value can't cause a live access token to be sent to an untrusted host.
+
 Compatible with `Umbraco.Cms` 17.4.0–17.6.2 and `Umbraco.Automate` (Core) 17.2.0+, `v18.x`
 excluded as a deliberate scope boundary (see `docs/dev-notes.md`).
 
