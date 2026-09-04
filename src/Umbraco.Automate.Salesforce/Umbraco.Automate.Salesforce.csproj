@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <!-- Razor SDK RCL — same single-project shape as Umbraco.Automate.Slack. Holds Actions/,
-         Connection/, Configuration/, and Metadata/ (Describe-metadata cache service, see
-         docs/dev-notes.md §5). The single NuGet package an implementer installs — no meta-package,
-         no persistence split, since this package ships no triggers and keeps no local state
-         (every action calls the Salesforce REST API directly and stores nothing itself). -->
+         Connection/, and Configuration/. The single NuGet package an implementer installs — no
+         meta-package, no persistence split, since this package ships no triggers and keeps no
+         local state (every action calls the Salesforce REST API directly and stores nothing
+         itself; there is no Describe-metadata cache — see docs/dev-notes.md §5). -->
     <PropertyGroup>
         <Title>Umbraco Automate Salesforce</Title>
         <Description>Salesforce connection and actions for Umbraco Automate</Description>

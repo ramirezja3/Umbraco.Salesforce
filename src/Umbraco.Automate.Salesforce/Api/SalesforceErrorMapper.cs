@@ -60,26 +60,13 @@ public static class SalesforceErrorMapper
             using var document = JsonDocument.Parse(rawBody);
             var root = document.RootElement;
 
-            // Standard REST data API shape: a JSON array of error objects.
+            // Standard REST data API shape: a JSON array of error objects. Every shipped action
+            // calls the /sobjects/... REST Data API exclusively, which only ever produces this
+            // shape — there is no Invocable Actions REST resource call anywhere in this package's
+            // six actions to produce a different one.
             if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
             {
                 var first = root[0];
-
-                // Invocable Actions REST resource shape (used by actions like chatterPost,
-                // emailSimple): [{ actionName, isSuccess, errors: [{ statusCode, message, fields }], ... }].
-                // Confirmed live against a real organization — the error detail is nested one level deeper
-                // than the standard REST shape below, under a different field name (statusCode,
-                // not errorCode).
-                if (first.TryGetProperty("errors", out var errorsElement)
-                    && errorsElement.ValueKind == JsonValueKind.Array
-                    && errorsElement.GetArrayLength() > 0)
-                {
-                    var firstError = errorsElement[0];
-                    var invocableMessage = firstError.TryGetProperty("message", out var im) ? im.GetString() : null;
-                    var invocableCode = firstError.TryGetProperty("statusCode", out var ic) ? ic.GetString() : null;
-                    return (invocableMessage, invocableCode);
-                }
-
                 var message = first.TryGetProperty("message", out var m) ? m.GetString() : null;
                 var errorCode = first.TryGetProperty("errorCode", out var c) ? c.GetString() : null;
                 return (message, errorCode);

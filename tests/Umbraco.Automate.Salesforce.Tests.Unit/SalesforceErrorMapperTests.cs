@@ -105,20 +105,4 @@ public class SalesforceErrorMapperTests
         error.Category.ShouldBe(StepRunErrorCategory.Authentication);
         error.Message.ShouldContain("session is no longer valid", Case.Insensitive);
     }
-
-    [Fact]
-    public void Map_InvocableActionErrorShape_ExtractsNestedMessageAndStatusCode()
-    {
-        // Exact shape captured live from the chatterPost standard Invocable Action (docs/dev-notes.md
-        // §0a) — the error is nested under errors[0], unlike the standard REST array shape where
-        // message/errorCode sit directly on the top-level array element.
-        var body = """
-            [{"actionName":"chatterPost","errors":[{"statusCode":"UNKNOWN_EXCEPTION","message":"Verify the combination of your \"Target Name Or ID\" and \"Target Type\" fields to make sure you provide a valid user, Chatter group, or record to post to.","fields":[]}],"expectedError":false,"invocationId":null,"isSuccess":false,"outcome":null,"outputValues":null,"sortOrder":-1,"version":1}]
-            """;
-
-        var error = SalesforceErrorMapper.Map(HttpStatusCode.BadRequest, body);
-
-        error.ErrorCode.ShouldBe("UNKNOWN_EXCEPTION");
-        error.Message.ShouldContain("valid user, Chatter group, or record");
-    }
 }

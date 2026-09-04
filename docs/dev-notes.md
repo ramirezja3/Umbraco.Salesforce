@@ -1130,5 +1130,54 @@ PKCE wasn't independently re-verified here — no code in this package disables 
 Client WebIntegration's own Salesforce provider profile is the thing that would need to be read to
 confirm it's on by default; treated as inherited-safe-default given nothing here overrides it, not
 independently re-confirmed by decompilation the way an earlier pass did for grant types (§18).
+
+## 24. Pre-NuGet-publish cleanup pass — dead scaffolding and one doc inaccuracy removed (2026-09-04)
+
+Asked, before the actual `dotnet nuget push`, to make sure nothing outdated or no-longer-relevant
+was left lying around — code, config, or docs. A grep sweep across every tracked file for
+scoped-out-feature keywords (SOQL, Chatter, Apex, Convert Lead, Platform Event, Bulk API, Describe
+API, Outbound Message, CDC) turned up nothing false in the actual docs (every remaining mention is
+either an accurate "picklist" field description or an explicit, correctly-framed "this package does
+NOT do X" statement) — but did surface several genuine leftovers from the abandoned
+polling-trigger/Describe-metadata-cache architecture (§0a, §14-16) that outlived that architecture's
+removal:
+
+- **`src/Umbraco.Automate.Salesforce/Metadata/.gitkeep`** — an empty folder scaffolded for the
+  Describe-metadata cache service §5 explicitly says was "considered and deliberately not built."
+  Removed, along with the stale reference to it in `Umbraco.Automate.Salesforce.csproj`'s own header
+  comment (which still described the project as holding a `Metadata/` folder for that service).
+- **`.config/dotnet-tools.json`** — pinned `dotnet-ef` as a local tool. Nothing in this package has
+  used EF Core since the polling-trigger/metadata-cache persistence project plan was dropped (no
+  `DbContext` exists anywhere in current `src/`, confirmed by grep) — removed the whole manifest.
+- **Two unused `Directory.Packages.props` pins**: `Microsoft.AspNetCore.OpenApi` (commented as "only
+  needed if/when a Management API controller is added, e.g. for a 'refresh metadata' endpoint" — a
+  feature §5 rules out) and `Microsoft.Extensions.Options` (available transitively via the Razor SDK
+  shared framework; nothing has an explicit `PackageReference` to it). Neither was referenced by any
+  `.csproj`, confirmed by grep before removing.
+- **A genuinely dead code path**: `SalesforceErrorMapper.ExtractFirstError`'s nested-`errors`-array
+  branch existed to parse the Invocable Actions REST resource's error shape, needed only by the
+  `chatterPost`/`emailSimple` actions built in an earlier pass (§0a) and never part of the shipped
+  six-action scope after the v2 rescoping (`def5eec`). None of the six shipped actions call anything
+  but the standard `/sobjects/...` REST Data API, which never produces that shape — the branch was
+  unreachable in the shipped product. Removed it and its dedicated regression test
+  (`Map_InvocableActionErrorShape_ExtractsNestedMessageAndStatusCode`).
+- **One real doc inaccuracy, not just staleness**: `CHANGELOG.md`'s `[0.1.0]` entry claimed
+  `SalesforceComposer` "fails fast with an actionable error if Umbraco.Automate core isn't
+  installed/composed" — directly contradicted by §0a's own corrections table ("Not needed and has
+  no precedent... Don't add this code"), and confirmed against the real `SalesforceComposer.cs`,
+  which has no such check. Corrected to describe what actually happens (attribute-based
+  auto-discovery, no manual `Program.cs` wiring).
+
+Also reworded one misleading-but-not-wrong comment: `SalesforceComposer`'s "least-privilege scopes"
+comment used "a future action needing chatter_api" as its example — implying this package might grow
+a Chatter action, which the frozen scope explicitly rules out. Reworded to frame it as an
+implementer's own broader use of the connection, not a hint at package growth.
+
+Full unit suite re-run after every removal (67/67 green — one fewer than the pre-cleanup 68, from
+the deleted dead test); full solution build and a real (`UseProjectReferences=false`) pack both
+still succeed with zero new warnings. Nothing else found: `docs/actions.md`, `docs/troubleshooting.md`,
+`docs/security.md`, `README.md`, `umbraco-marketplace-readme.md`, and both `CLAUDE.md` files were
+each read in full this pass and matched the current single-connection-type, six-action, no-triggers
+shape with no further corrections needed.
 gap.
 result of this correction.

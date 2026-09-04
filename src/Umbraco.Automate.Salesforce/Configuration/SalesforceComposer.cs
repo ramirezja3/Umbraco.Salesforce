@@ -14,8 +14,8 @@ namespace Umbraco.Automate.Salesforce.Configuration;
 /// </summary>
 public sealed class SalesforceComposer : IComposer
 {
-    // Requesting only what's actually needed keeps this least-privilege — implementers who want
-    // to request more (e.g. a future action needing "chatter_api") add it under
+    // Requesting only what's actually needed keeps this least-privilege — an implementer who
+    // needs a broader scope for their own use of the connection adds it under
     // Umbraco:Automate:Providers:Salesforce:Scopes rather than this package silently ignoring it.
     private static readonly string[] DefaultScopes = ["api", "refresh_token"];
 

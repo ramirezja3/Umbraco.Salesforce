@@ -24,12 +24,6 @@
     <PackageVersion Include="Umbraco.Cms.Api.Management" Version="[17.4.0, 17.999.999)" />
   </ItemGroup>
 
-  <!-- OpenAPI (only needed if/when a Management API controller is added, e.g. for a
-       "refresh metadata" endpoint — mirrors Umbraco.Automate.OpenIddict.Core's usage) -->
-  <ItemGroup>
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="[10.0.6, 10.999.999)" />
-  </ItemGroup>
-
   <!-- Inter-product (Umbraco.Automate) — this package's actual dependency floor.
        Pin these to whatever Core/OpenIddict versions this package was built and tested against. -->
   <ItemGroup>
@@ -45,11 +39,6 @@
   <!-- OpenIddict (Client + WebIntegration for OAuth flows) -->
   <ItemGroup>
     <PackageVersion Include="OpenIddict.Client.WebIntegration" Version="[7.4.0, 7.999.999)" />
-  </ItemGroup>
-
-  <!-- Shared dependencies -->
-  <ItemGroup>
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="[10.0.6, 10.999.999)" />
   </ItemGroup>
 
   <!-- Test dependencies -->

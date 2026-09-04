@@ -27,8 +27,9 @@ Initial public preview.
   refresh-and-retry-once on expired access tokens.
 - Human-readable Run-log error mapping for common Salesforce API errors (`INVALID_FIELD`,
   `REQUIRED_FIELD_MISSING`, `DUPLICATE_VALUE`, `DUPLICATES_DETECTED`, governor-limit errors).
-- Zero-code install: composed automatically via `SalesforceComposer`, fails fast with an
-  actionable error if `Umbraco.Automate` core isn't installed/composed.
+- Zero-code install: connection type and actions register themselves automatically via
+  attributes (`SalesforceComposer` wires up OAuth and this package's own services) — no manual
+  `Program.cs` changes required.
 - Docs: installation guide, action reference, security posture, troubleshooting guide.
 
 ### Security
