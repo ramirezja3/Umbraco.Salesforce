@@ -3,9 +3,10 @@ using System.Text.Json;
 namespace Umbraco.Automate.Salesforce.Api;
 
 /// <summary>
-/// Small conversions between <see cref="JsonElement"/> and the loosely-typed dictionaries used
-/// by action outputs — Salesforce record shape isn't statically typed in v1 (docs/dev-notes.md §0a: no
-/// live Describe-metadata picker yet), so record fields surface as a plain field-name → value map.
+/// Small conversions between <see cref="JsonElement"/> and the loosely-typed dictionaries used to
+/// inspect a Salesforce record's fields in tests — this package has no live object/field picker
+/// (docs/dev-notes.md §5), so a returned record's fields surface as a plain field-name → value map
+/// rather than a statically-typed model.
 /// </summary>
 internal static class SalesforceJsonHelpers
 {

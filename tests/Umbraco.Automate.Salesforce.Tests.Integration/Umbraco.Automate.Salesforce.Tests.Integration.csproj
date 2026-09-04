@@ -13,10 +13,12 @@
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio" />
         <PackageReference Include="coverlet.collector" />
-        <!-- Add a WireMock.Net (or equivalent) PackageReference here once the fixture layer for
-             recorded Salesforce REST API responses is designed — see docs/dev-notes.md §9 and confirm
-             against whatever fixture approach Slack/OpenIddict's own integration tests use. -->
     </ItemGroup>
+
+    <!-- No mocked/recorded HTTP fixture layer (e.g. WireMock.Net) — these tests call the real
+         Salesforce REST API against a live org, opt-in via a local .env (see LiveSalesforceCredentials
+         and docs/troubleshooting.md); they no-op without one, so CI and other developers are
+         unaffected by its absence. -->
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\Umbraco.Automate.Salesforce\Umbraco.Automate.Salesforce.csproj" />

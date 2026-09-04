@@ -8,6 +8,15 @@ for the short orientation brief, and `README.md`/`docs/*.md` for user-facing doc
 This file is intentionally not linked from README.md — it is internal engineering
 history, not part of the package's public-facing surface.
 
+**Sections 0–13 immediately below are the original project brief, kept verbatim (with
+inline `[x]`/`[ ]` status annotations added over time) for provenance — they describe the
+scope as first drafted, including features that were later explicitly cut** (a generic
+object/query action, SOQL support, a Delete Record action, Salesforce-side triggers, a
+Describe-metadata picker). **They do not describe what actually shipped.** For accurate,
+current scope and status, see the top-level `CLAUDE.md`, `docs/actions.md`,
+`docs/security.md`, and — for the actual chronological record of what was built, cut, and
+why — **§14 onward below**, which is a real dated log, not frozen original-brief text.
+
 ---
 
 # CLAUDE.md — Umbraco.Automate.Salesforce
@@ -1215,5 +1224,3 @@ Per nuget.org's own docs, the 7-day "pending activation" window they describe "u
 private GitHub repos" — this repo is public, so it's not expected here, but the docs don't promise
 it never applies to a public repo either; if the policy shows as pending after creation, that's
 expected per their own docs, not a sign something's misconfigured.
-gap.
-result of this correction.
