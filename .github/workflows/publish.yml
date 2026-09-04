@@ -40,7 +40,7 @@ jobs:
       # dotnet nuget push also pushes the co-located .snupkg symbol package automatically.
       - name: NuGet push
         run: >
-          dotnet nuget push artifacts/nupkg/Umbraco.Automate.Salesforce.*.nupkg
+          dotnet nuget push artifacts/nupkg/Automate.Salesforce.Connector.*.nupkg
           --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate

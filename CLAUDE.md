@@ -2,16 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Note:** This is the Umbraco.Automate.Salesforce package — a provider that adds Salesforce connectivity to [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate), mirroring the structure and conventions of `Umbraco.Automate.Slack` and `Umbraco.Automate.OpenIddict`. For the full historical design/build log — including non-obvious platform constraints that took real investigation to uncover — see `docs/dev-notes.md`.
+> **Note:** This is the Automate.Salesforce.Connector package — a provider that adds Salesforce connectivity to [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate), mirroring the structure and conventions of `Umbraco.Automate.Slack` and `Umbraco.Automate.OpenIddict`. For the full historical design/build log — including non-obvious platform constraints that took real investigation to uncover — see `docs/dev-notes.md`.
 
 ## Build Commands
 
 ```bash
 # Build the solution
-dotnet build Umbraco.Automate.Salesforce.slnx
+dotnet build Automate.Salesforce.Connector.slnx
 
 # Run unit tests
-dotnet test tests/Umbraco.Automate.Salesforce.Tests.Unit/Umbraco.Automate.Salesforce.Tests.Unit.csproj
+dotnet test tests/Automate.Salesforce.Connector.Tests.Unit/Automate.Salesforce.Connector.Tests.Unit.csproj
 
 # Pack the package with real (non-project-reference) dependency pins, for release
 ./scripts/pack-release.ps1
@@ -29,7 +29,7 @@ not that the *package* does. Before publishing a release:
 ```
 
 The second script creates a genuinely separate Umbraco 17 site under `demos/v17/` and installs
-`Umbraco.Automate` (from nuget.org) and `Umbraco.Automate.Salesforce` (from the local pack output)
+`Umbraco.Automate` (from nuget.org) and `Automate.Salesforce.Connector` (from the local pack output)
 as real NuGet packages — no project references. Confirm that **Automation → Connections → Create**
 lists the Salesforce connection type, and that the action picker shows all six Salesforce
 actions, before publishing.
@@ -48,7 +48,7 @@ git push origin vX.Y.Z
 That push is the actual "go live" action — it fires the workflow immediately. One-time setup this
 required on nuget.org (already done for this repo, needed again only if the policy is ever
 recreated): **Trusted Publishing** → add a policy for repository owner `ramirezja3`, repository
-`Umbraco.Salesforce`, workflow file `publish.yml`, scoped to the `Umbraco.Automate.Salesforce`
+`Umbraco.Salesforce`, workflow file `publish.yml`, scoped to the `Automate.Salesforce.Connector`
 package id.
 
 ### Local development setup
@@ -79,18 +79,18 @@ Without that sibling checkout, the build still works — it falls back to the
 
 ## Architecture Overview
 
-Umbraco.Automate.Salesforce is a provider package that adds Salesforce connectivity to Umbraco Automate. It uses `Umbraco.Automate.OpenIddict` for OAuth authentication and provides a Salesforce connection type and six actions — no triggers (removed in v2; see `docs/dev-notes.md`). Each action targets one fixed, named Salesforce object with named fields (no generic "pick an object API name" action — see `docs/dev-notes.md`'s most recent entry for why). Every action calls the Salesforce REST API directly and keeps no local state, so this package needs no persistence of its own — it's a single Razor SDK RCL, the same shape as `Umbraco.Automate.Slack`, not split the way `Umbraco.Automate.OpenIddict` is.
+Automate.Salesforce.Connector is a provider package that adds Salesforce connectivity to Umbraco Automate. It uses `Umbraco.Automate.OpenIddict` for OAuth authentication and provides a Salesforce connection type and six actions — no triggers (removed in v2; see `docs/dev-notes.md`). Each action targets one fixed, named Salesforce object with named fields (no generic "pick an object API name" action — see `docs/dev-notes.md`'s most recent entry for why). Every action calls the Salesforce REST API directly and keeps no local state, so this package needs no persistence of its own — it's a single Razor SDK RCL, the same shape as `Umbraco.Automate.Slack`, not split the way `Umbraco.Automate.OpenIddict` is.
 
 ### Project Structure
 
 ```
-Umbraco.Automate.Salesforce/
+Automate.Salesforce.Connector/
 ├── src/
-│   └── Umbraco.Automate.Salesforce/    # Actions, Connection, Configuration — the one NuGet package
+│   └── Automate.Salesforce.Connector/    # Actions, Connection, Configuration — the one NuGet package
 ├── tests/
-│   ├── Umbraco.Automate.Salesforce.Tests.Unit/
-│   └── Umbraco.Automate.Salesforce.Tests.Integration/
-└── Umbraco.Automate.Salesforce.slnx
+│   ├── Automate.Salesforce.Connector.Tests.Unit/
+│   └── Automate.Salesforce.Connector.Tests.Integration/
+└── Automate.Salesforce.Connector.slnx
 ```
 
 ### How It Works
@@ -127,13 +127,13 @@ Provider credentials are configured via `appsettings.json`:
 ### Project Layout
 
 ```
-Umbraco.Automate.Salesforce/
+Automate.Salesforce.Connector/
 ├── src/
-│   └── Umbraco.Automate.Salesforce/    # Actions, Connection, Configuration — the one NuGet package
+│   └── Automate.Salesforce.Connector/    # Actions, Connection, Configuration — the one NuGet package
 ├── tests/
-│   ├── Umbraco.Automate.Salesforce.Tests.Unit/
-│   └── Umbraco.Automate.Salesforce.Tests.Integration/
-└── Umbraco.Automate.Salesforce.slnx
+│   ├── Automate.Salesforce.Connector.Tests.Unit/
+│   └── Automate.Salesforce.Connector.Tests.Integration/
+└── Automate.Salesforce.Connector.slnx
 ```
 
 No persistence project and no meta-package split (unlike `Umbraco.Automate.OpenIddict`'s

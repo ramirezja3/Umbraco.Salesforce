@@ -76,4 +76,4 @@ easy trap to read as "the package didn't install correctly."
 
 ## Live-org integration tests are skipped / no-op in CI
 
-This is expected and correct — the opt-in live-organization integration tests (`tests/Umbraco.Automate.Salesforce.Tests.Integration`) only run when a local `.env` file with real Connected App credentials is present. They silently no-op otherwise so CI and other developers' machines are never affected by their absence. See that test project's `LiveSalesforceCredentials` for the exact file it looks for.
+This is expected and correct — the opt-in live-organization integration tests (`tests/Automate.Salesforce.Connector.Tests.Integration`) only run when a local `.env` file with real Connected App credentials is present. They silently no-op otherwise so CI and other developers' machines are never affected by their absence. See that test project's `LiveSalesforceCredentials` for the exact file it looks for.

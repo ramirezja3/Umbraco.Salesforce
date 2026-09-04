@@ -1,4 +1,4 @@
-﻿# Packs the Umbraco.Automate.Salesforce NuGet package with the correct release-mode dependency
+﻿# Packs the Automate.Salesforce.Connector NuGet package with the correct release-mode dependency
 # pins.
 #
 # Why this script exists: packing with the default UseProjectReferences=true (the dev-mode
@@ -21,12 +21,12 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Push-Location $RepoRoot
 
 $Projects = @(
-    "src/Umbraco.Automate.Salesforce/Umbraco.Automate.Salesforce.csproj"
+    "src/Automate.Salesforce.Connector/Automate.Salesforce.Connector.csproj"
 )
 
 if (-not $SkipBuild) {
     Write-Host "Building solution with real (non-project-reference) dependencies..." -ForegroundColor Green
-    dotnet build Umbraco.Automate.Salesforce.slnx --configuration Release -p:UseProjectReferences=false
+    dotnet build Automate.Salesforce.Connector.slnx --configuration Release -p:UseProjectReferences=false
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Build failed — not packing." -ForegroundColor Red
         exit $LASTEXITCODE

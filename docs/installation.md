@@ -1,4 +1,4 @@
-# Installing Umbraco.Automate.Salesforce
+# Installing Automate.Salesforce.Connector
 
 ## Step 0: Prerequisites
 
@@ -26,7 +26,7 @@ Before installing this package, you need:
 ## Step 2: Add the package
 
 ```bash
-dotnet add package Umbraco.Automate.Salesforce
+dotnet add package Automate.Salesforce.Connector
 ```
 
 This pulls in `Umbraco.Automate.OpenIddict` automatically if it isn't already installed. No code changes are required — the connection types and actions register themselves via attributes when the site starts.

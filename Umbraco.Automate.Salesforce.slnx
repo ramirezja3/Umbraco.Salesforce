@@ -1,9 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Umbraco.Automate.Salesforce/Umbraco.Automate.Salesforce.csproj" />
-  </Folder>
-  <Folder Name="/Tests/">
-    <Project Path="tests/Umbraco.Automate.Salesforce.Tests.Unit/Umbraco.Automate.Salesforce.Tests.Unit.csproj" />
-    <Project Path="tests/Umbraco.Automate.Salesforce.Tests.Integration/Umbraco.Automate.Salesforce.Tests.Integration.csproj" />
-  </Folder>
-</Solution>

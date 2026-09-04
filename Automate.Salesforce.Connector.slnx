@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Automate.Salesforce.Connector/Automate.Salesforce.Connector.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/Automate.Salesforce.Connector.Tests.Unit/Automate.Salesforce.Connector.Tests.Unit.csproj" />
+    <Project Path="tests/Automate.Salesforce.Connector.Tests.Integration/Automate.Salesforce.Connector.Tests.Integration.csproj" />
+  </Folder>
+</Solution>

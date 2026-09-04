@@ -31,7 +31,7 @@
     <PackageVersion Include="Umbraco.Automate.OpenIddict" Version="[17.1.2, 17.999.999)" />
     <!-- Test-only: Core's own ActionTestHarness, so this package's integration tests can execute
          real Action classes (real ConfiguredConnection, real DI) instead of hand-rolling one —
-         see tests/Umbraco.Automate.Salesforce.Tests.Integration's csproj for the sibling-checkout
+         see tests/Automate.Salesforce.Connector.Tests.Integration's csproj for the sibling-checkout
          fallback that mirrors the src project's own pattern. -->
     <PackageVersion Include="Umbraco.Automate.Testing" Version="[17.2.0, 17.999.999)" />
   </ItemGroup>
