@@ -21,7 +21,13 @@ jobs:
                       # checkout silently loses repo read access (breaks outright on a private repo)
       id-token: write # required to request the OIDC token NuGet/login exchanges for a temp API key
     steps:
+      # fetch-depth: 0 (full history) — Nerdbank.GitVersioning walks git history to compute the
+      # version height and fails outright ("Shallow clone lacks the objects required...") on the
+      # default single-commit shallow checkout. Same constraint documented in this repo's own
+      # CLAUDE.md for the sibling ../Umbraco.Automate dev checkout.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-dotnet@v4
         with:
