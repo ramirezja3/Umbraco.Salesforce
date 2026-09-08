@@ -16,6 +16,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
+      contents: read # required for actions/checkout — a `permissions:` block replaces the
+                      # default token grants entirely, so this must be listed explicitly or
+                      # checkout silently loses repo read access (breaks outright on a private repo)
       id-token: write # required to request the OIDC token NuGet/login exchanges for a temp API key
     steps:
       - uses: actions/checkout@v4
