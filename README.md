@@ -1,4 +1,4 @@
-# Umbraco Community Automate Salesforce
+# Umbraco Automate Salesforce
 
 Salesforce connection and actions for [Umbraco Automate](https://github.com/umbraco/Umbraco.Automate).
 
@@ -13,7 +13,7 @@ Requires **Umbraco.Automate** (core) already installed and composed — this pac
 - **Salesforce connection type** — OAuth-based, for production orgs (`login.salesforce.com`), managed in the backoffice
 - **Six CRM actions** — Create Lead, Create/Update Contact, Create Opportunity, Update Opportunity Stage, Add to Campaign, Log Engagement Activity
 - **Automatic token management** — OAuth credentials are stored and refreshed transparently
-- **Rate-limit aware** — backs off automatically on Salesforce's `REQUEST_LIMIT_EXCEEDED` and 429 responses
+- **Rate-limit aware**
 
 ## Installation
 
@@ -42,15 +42,12 @@ Create a Salesforce Connected App and configure its credentials via `appsettings
 
 The OAuth callback URI follows the convention `{your-site}/umbraco/automate/oauth/callback/salesforce` — add it to your Connected App's callback URLs. Then create a Salesforce connection in a workspace from the backoffice and authorize it via the OAuth popup.
 
-See [docs/installation.md](docs/installation.md) for the full Connected App setup walkthrough.
+For the full Connected App setup walkthrough, see the **Documentation** section below.
 
 ## Documentation
 
-- [docs/installation.md](docs/installation.md) — Connected App setup, configuration, first connect
-- [docs/actions.md](docs/actions.md) — the six actions, their inputs/outputs, and example use
-- [docs/security.md](docs/security.md) — security and compliance posture
-- [docs/troubleshooting.md](docs/troubleshooting.md) — common Salesforce error codes and what to do about each
+Full documentation lives in the [GitHub repository](https://github.com/ramirezja3/Umbraco.Salesforce).
 
 ## License
 
-MIT - See [LICENSE](LICENSE) for details.
+MIT - see the [GitHub repository](https://github.com/ramirezja3/Umbraco.Salesforce) for the full license text.
