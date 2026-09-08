@@ -6,7 +6,7 @@
          local state (every action calls the Salesforce REST API directly and stores nothing
          itself; there is no Describe-metadata cache — see docs/dev-notes.md §5). -->
     <PropertyGroup>
-        <Title>Umbraco Community Automate Salesforce</Title>
+        <Title>Umbraco Automate Salesforce</Title>
         <Description>Salesforce connection and actions for Umbraco Automate</Description>
         <PackageReadmeFile>docs\README.md</PackageReadmeFile>
         <AddRazorSupportForMvc>true</AddRazorSupportForMvc>

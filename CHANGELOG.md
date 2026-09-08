@@ -9,6 +9,16 @@ way `Umbraco.Automate.OpenIddict`'s `CHANGELOG.md` is.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-08
+
+### Changed
+
+- Package display title changed to "Umbraco Automate Salesforce" (the `PackageId`,
+  `Umbraco.Community.Automate.Salesforce`, is unchanged).
+- `README.md` no longer links directly to files under `docs/` or `LICENSE` — those relative links
+  don't resolve once the README is packed into the nupkg (only the README itself ships inside the
+  package). Doc references now point at the GitHub repository instead.
+
 ## [0.1.0] - 2026-09-04
 
 Initial public preview.
